@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Net Twin — Coming Soon | Techtrekkers</title>
+<meta name="description" content="Net Twin — Digital Twin Intelligence by Techtrekkers. Simulate, analyze, and optimize real-world systems. Launching soon." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Manrope:wght@300..800&family=JetBrains+Mono:wght@400..600&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --accent: #3B82F6;
+    --accent-bright: #60A5FA;
+    --accent-soft: #93C5FD;
+    --accent-deep: #1E40AF;
+    --accent-glow: rgba(59, 130, 246, 0.45);
+    --accent-glow-soft: rgba(59, 130, 246, 0.15);
+    --secondary: #06B6D4;
+    --bg: #050816;
+    --bg-2: #0A0E27;
+    --panel: rgba(15, 23, 42, 0.55);
+    --panel-border: rgba(99, 130, 200, 0.18);
+    --text: #E2E8F0;
+    --text-dim: #94A3B8;
+    --text-faint: #64748B;
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-body: 'Manrope', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body); background: var(--bg); color: var(--text);
+    overflow-x: hidden; min-height: 100vh; position: relative;
+    -webkit-font-smoothing: antialiased; line-height: 1.5;
+  }
+  .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .bg-glow {
+    background:
+      radial-gradient(ellipse 70% 60% at 75% 25%, var(--accent-glow-soft) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 20% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 100% at 50% 0%, rgba(30, 64, 175, 0.18) 0%, transparent 70%);
+  }
+  .stars, .stars-2, .stars-3 { background-repeat: repeat; animation: drift 200s linear infinite; }
+  .stars  { background-image: radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 80% 60%, #fff, transparent), radial-gradient(1px 1px at 40% 80%, #fff, transparent), radial-gradient(1px 1px at 60% 10%, #fff, transparent), radial-gradient(1px 1px at 90% 90%, #fff, transparent); background-size: 300px 300px; opacity: 0.5; }
+  .stars-2{ background-image: radial-gradient(1.5px 1.5px at 15% 50%, #cfe2ff, transparent), radial-gradient(1px 1px at 70% 30%, #cfe2ff, transparent), radial-gradient(1.5px 1.5px at 30% 90%, #cfe2ff, transparent); background-size: 500px 500px; opacity: 0.7; animation-duration: 320s; }
+  .stars-3{ background-image: radial-gradient(2px 2px at 50% 50%, var(--accent-bright), transparent), radial-gradient(2px 2px at 10% 10%, var(--accent-bright), transparent); background-size: 800px 800px; opacity: 0.4; animation-duration: 480s; }
+  @keyframes drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-300px, -200px, 0); } }
+  .twinkle { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; box-shadow: 0 0 6px #fff, 0 0 12px var(--accent-bright); animation: twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.4); } }
+  .noise { background: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>"); opacity: 0.04; mix-blend-mode: overlay; }
+  .content { position: relative; z-index: 2; }
+
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding: 22px clamp(20px, 5vw, 60px); display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(12px); background: linear-gradient(180deg, rgba(5, 8, 22, 0.75), rgba(5, 8, 22, 0.3) 70%, transparent); border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .logo-wrap { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+  .logo-mark { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #3B82F6, #06B6D4 60%, #A855F7); display: grid; place-items: center; box-shadow: 0 8px 24px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.3); position: relative; overflow: hidden; }
+  .logo-mark::after { content: ''; position: absolute; inset: 1px; border-radius: 9px; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15)); }
+  .logo-mark span { position: relative; z-index: 1; font-family: var(--font-display); font-weight: 700; font-size: 18px; color: #fff; }
+  .logo-text { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
+  .logo-text .sub { display: block; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.25em; color: var(--text-faint); text-transform: uppercase; margin-top: 2px; }
+  .nav-right { display: flex; align-items: center; gap: 18px; }
+  .back-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--panel-border); border-radius: 999px; background: var(--panel); backdrop-filter: blur(8px); color: var(--text-dim); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .25s; }
+  .back-link:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.1); color: var(--accent-bright); }
+  .back-link svg { width: 14px; height: 14px; }
+
+  .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 130px clamp(20px, 5vw, 60px) 80px; text-align: center; position: relative; }
+  .badge { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border: 1px solid var(--panel-border); border-radius: 999px; background: var(--panel); backdrop-filter: blur(10px); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 36px; animation: float-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) both; box-shadow: 0 0 30px var(--accent-glow-soft); }
+  .badge .dot { width: 8px; height: 8px; background: var(--accent-bright); border-radius: 50%; box-shadow: 0 0 10px var(--accent-bright); animation: pulse-dot 1.5s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.6; } }
+  .hero h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(56px, 11vw, 156px); line-height: 0.92; letter-spacing: -0.05em; margin-bottom: 20px; background: linear-gradient(180deg, #fff 30%, var(--accent-soft) 70%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; animation: float-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s both; text-shadow: 0 0 80px var(--accent-glow); }
+  .hero h1 .slash { background: linear-gradient(135deg, var(--accent-bright), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; font-style: italic; }
+  .hero .tagline { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent-bright); margin-bottom: 24px; animation: float-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both; }
+  .hero .description { max-width: 600px; font-size: 17px; color: var(--text-dim); margin: 0 auto 56px; line-height: 1.7; animation: float-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both; }
+  @keyframes float-in { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+  .countdown { display: flex; gap: 14px; margin-bottom: 48px; animation: float-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.55s both; flex-wrap: wrap; justify-content: center; }
+  .count-unit { min-width: 110px; padding: 22px 18px; background: var(--panel); border: 1px solid var(--panel-border); backdrop-filter: blur(14px); border-radius: 16px; position: relative; overflow: hidden; transition: transform .3s; }
+  .count-unit::before { content: ''; position: absolute; inset: 0; border-radius: 16px; padding: 1px; background: linear-gradient(135deg, var(--accent-glow), transparent 40%, transparent 60%, var(--accent-glow)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity .3s; }
+  .count-unit:hover { transform: translateY(-4px); }
+  .count-unit:hover::before { opacity: 1; }
+  .count-num { font-family: var(--font-display); font-size: 44px; font-weight: 600; line-height: 1; background: linear-gradient(180deg, #fff, var(--accent-bright)); -webkit-background-clip: text; background-clip: text; color: transparent; font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+  .count-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.25em; color: var(--text-faint); }
+
+  .email-form { display: flex; gap: 10px; max-width: 460px; width: 100%; margin: 0 auto; padding: 7px; background: var(--panel); border: 1px solid var(--panel-border); backdrop-filter: blur(14px); border-radius: 999px; animation: float-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.7s both; transition: border-color .25s, box-shadow .25s; }
+  .email-form:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow-soft), 0 8px 32px var(--accent-glow-soft); }
+  .email-form input { flex: 1; background: transparent; border: 0; outline: 0; padding: 0 18px; color: var(--text); font-family: var(--font-body); font-size: 15px; }
+  .email-form input::placeholder { color: var(--text-faint); }
+  .email-form button { padding: 12px 26px; background: linear-gradient(135deg, var(--accent), var(--secondary)); border: 0; border-radius: 999px; color: #fff; font-family: var(--font-body); font-weight: 600; font-size: 14px; cursor: pointer; transition: transform .2s, box-shadow .2s; box-shadow: 0 4px 20px var(--accent-glow); white-space: nowrap; }
+  .email-form button:hover { transform: translateY(-1px); box-shadow: 0 6px 28px var(--accent-glow); }
+  .form-message { margin-top: 18px; font-size: 14px; color: var(--accent-bright); min-height: 20px; font-family: var(--font-mono); letter-spacing: 0.05em; }
+
+  .preview { padding: 80px clamp(20px, 5vw, 60px); display: flex; justify-content: center; position: relative; }
+  .preview-card { width: 100%; max-width: 1100px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(30, 41, 59, 0.4)); border: 1px solid var(--panel-border); border-radius: 24px; backdrop-filter: blur(20px); overflow: hidden; position: relative; box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 60px var(--accent-glow-soft), inset 0 1px 0 rgba(255,255,255,0.05); }
+  .preview-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 50% at 50% 0%, var(--accent-glow-soft), transparent); pointer-events: none; }
+  .preview-header { padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--panel-border); position: relative; z-index: 1; }
+  .preview-header-left { display: flex; align-items: center; gap: 14px; }
+  .traffic-lights { display: flex; gap: 6px; }
+  .traffic-lights span { width: 11px; height: 11px; border-radius: 50%; }
+  .traffic-lights span:nth-child(1) { background: #ef4444; }
+  .traffic-lights span:nth-child(2) { background: #f59e0b; }
+  .traffic-lights span:nth-child(3) { background: #10b981; }
+  .preview-title { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); letter-spacing: 0.1em; }
+  .preview-badge { padding: 4px 12px; background: rgba(59, 130, 246, 0.12); border: 1px solid var(--accent); border-radius: 999px; font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); letter-spacing: 0.2em; text-transform: uppercase; }
+  .preview-body { display: grid; grid-template-columns: 1.4fr 1fr; min-height: 480px; position: relative; z-index: 1; }
+  @media (max-width: 760px) { .preview-body { grid-template-columns: 1fr; } }
+
+  .city-scene { position: relative; padding: 24px; background: linear-gradient(180deg, transparent 0%, rgba(30, 64, 175, 0.15) 100%), repeating-linear-gradient(90deg, transparent 0, transparent 39px, rgba(99, 130, 200, 0.08) 39px, rgba(99, 130, 200, 0.08) 40px), repeating-linear-gradient(0deg, transparent 0, transparent 39px, rgba(99, 130, 200, 0.08) 39px, rgba(99, 130, 200, 0.08) 40px); overflow: hidden; border-right: 1px solid var(--panel-border); }
+  @media (max-width: 760px) { .city-scene { border-right: 0; border-bottom: 1px solid var(--panel-border); min-height: 360px; } }
+  .city-title { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 16px; position: relative; z-index: 2; }
+  .city-svg { width: 100%; height: 360px; display: block; }
+  .floor-grid { position: absolute; bottom: 24px; left: 0; right: 0; height: 90px; background: linear-gradient(180deg, transparent, var(--accent-glow-soft)), repeating-linear-gradient(90deg, transparent 0, transparent 19px, var(--accent) 19px, var(--accent) 20px), repeating-linear-gradient(0deg, transparent 0, transparent 14px, var(--accent) 14px, var(--accent) 15px); transform: perspective(360px) rotateX(58deg) scale(1.4); transform-origin: bottom; opacity: 0.35; mask: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); -webkit-mask: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); pointer-events: none; }
+  .pulse-ring { position: absolute; border: 2px solid var(--accent-bright); border-radius: 50%; opacity: 0; animation: pulse-ring 3s ease-out infinite; pointer-events: none; }
+  @keyframes pulse-ring { 0% { width: 6px; height: 6px; opacity: 0.9; } 100% { width: 120px; height: 120px; opacity: 0; transform: translate(-57px, -57px); } }
+
+  .data-panel { padding: 24px; display: flex; flex-direction: column; gap: 18px; background: rgba(0,0,0,0.18); }
+  .data-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.18); border-radius: 12px; transition: all .3s; }
+  .data-row:hover { background: rgba(59, 130, 246, 0.12); border-color: var(--accent); }
+  .data-label { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; }
+  .data-value { font-family: var(--font-display); font-size: 22px; font-weight: 600; background: linear-gradient(135deg, #fff, var(--accent-bright)); -webkit-background-clip: text; background-clip: text; color: transparent; font-variant-numeric: tabular-nums; }
+  .data-bar { width: 70px; height: 6px; background: rgba(59, 130, 246, 0.15); border-radius: 3px; overflow: hidden; position: relative; }
+  .data-bar::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); border-radius: 3px; animation: fill 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite alternate; }
+  @keyframes fill { 0% { width: 15%; } 100% { width: 92%; } }
+  .data-row:nth-child(2) .data-bar::after { animation-delay: 0.3s; animation-duration: 2.6s; }
+  .data-row:nth-child(3) .data-bar::after { animation-delay: 0.6s; animation-duration: 2.0s; }
+  .data-row:nth-child(4) .data-bar::after { animation-delay: 0.9s; animation-duration: 3.0s; }
+  .live-indicator { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: -4px; }
+  .live-indicator::before { content: ''; width: 7px; height: 7px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px #10b981; animation: pulse-dot 1s ease-in-out infinite; }
+  .windows .win { fill: var(--accent-bright); opacity: 0; animation: window-on 6s ease-in-out infinite; }
+  @keyframes window-on { 0%, 100% { opacity: 0; } 40%, 60% { opacity: 1; } }
+
+  .features { padding: 80px clamp(20px, 5vw, 60px) 60px; max-width: 1200px; margin: 0 auto; }
+  .features-head { text-align: center; margin-bottom: 56px; }
+  .features-eyebrow { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 14px; }
+  .features-title { font-family: var(--font-display); font-size: clamp(32px, 5vw, 52px); font-weight: 600; line-height: 1.05; letter-spacing: -0.03em; color: #fff; }
+  .features-title em { font-style: italic; background: linear-gradient(135deg, var(--accent-bright), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .feature-card { padding: 28px; background: var(--panel); border: 1px solid var(--panel-border); backdrop-filter: blur(14px); border-radius: 18px; position: relative; overflow: hidden; transition: transform .35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color .35s; }
+  .feature-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), var(--accent-glow-soft), transparent 40%); opacity: 0; transition: opacity .35s; pointer-events: none; }
+  .feature-card:hover { transform: translateY(-6px); border-color: rgba(99, 130, 200, 0.4); }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--secondary)); display: grid; place-items: center; margin-bottom: 20px; box-shadow: 0 6px 20px var(--accent-glow); }
+  .feature-icon svg { width: 22px; height: 22px; color: #fff; }
+  .feature-card h3 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #fff; letter-spacing: -0.01em; }
+  .feature-card p { font-size: 14.5px; color: var(--text-dim); line-height: 1.6; }
+  .feature-num { position: absolute; top: 18px; right: 22px; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); letter-spacing: 0.1em; }
+
+  footer { padding: 60px clamp(20px, 5vw, 60px) 40px; border-top: 1px solid var(--panel-border); margin-top: 40px; text-align: center; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; }
+  .socials { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
+  .socials a { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); display: grid; place-items: center; color: var(--text-dim); transition: all .25s; }
+  .socials a:hover { color: var(--accent-bright); border-color: var(--accent); transform: translateY(-2px); }
+  .socials svg { width: 18px; height: 18px; }
+  .footer-copy { font-size: 13px; color: var(--text-faint); font-family: var(--font-mono); letter-spacing: 0.05em; }
+  .footer-copy a { color: var(--accent-bright); text-decoration: none; }
+
+  @media (max-width: 540px) {
+    .logo-text .sub { display: none; }
+    .count-unit { min-width: 80px; padding: 16px 12px; }
+    .count-num { font-size: 32px; }
+    .email-form { flex-direction: column; padding: 14px; border-radius: 18px; }
+    .email-form button { width: 100%; padding: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer bg-glow"></div>
+<div class="bg-layer stars"></div>
+<div class="bg-layer stars-2"></div>
+<div class="bg-layer stars-3"></div>
+<div class="bg-layer noise"></div>
+<div class="bg-layer" id="twinkle-host"></div>
+
+<div class="content">
+
+  <nav>
+    <a class="logo-wrap" href="https://techtrekkers.ai">
+      <div class="logo-mark"><span>T</span></div>
+      <div class="logo-text">Net Twin<span class="sub">by Techtrekkers</span></div>
+    </a>
+    <div class="nav-right">
+      <a href="https://techtrekkers.ai" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Techtrekkers
+      </a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="badge"><span class="dot"></span>Launching Soon · Q2 2026</div>
+    <h1>Net <span class="slash">Twin</span></h1>
+    <div class="tagline">— Digital Twin Intelligence —</div>
+    <p class="description">Simulate, analyze, and optimize real-world systems in a living digital replica. Net Twin streams telemetry from your physical environment into a model you can prod, predict, and perfect — before the real world catches up.</p>
+
+    <div class="countdown" id="countdown">
+      <div class="count-unit"><div class="count-num" id="d">00</div><div class="count-label">Days</div></div>
+      <div class="count-unit"><div class="count-num" id="h">00</div><div class="count-label">Hours</div></div>
+      <div class="count-unit"><div class="count-num" id="m">00</div><div class="count-label">Minutes</div></div>
+      <div class="count-unit"><div class="count-num" id="s">00</div><div class="count-label">Seconds</div></div>
+    </div>
+
+    <form class="email-form" id="notify">
+      <input type="email" placeholder="you@company.com" required />
+      <button type="submit">Get Early Access</button>
+    </form>
+    <div class="form-message" id="msg"></div>
+  </section>
+
+  <section class="preview">
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="preview-header-left">
+          <div class="traffic-lights"><span></span><span></span><span></span></div>
+          <div class="preview-title">net-twin · sim/metropolis.dt</div>
+        </div>
+        <div class="preview-badge">◇ Digital Twin</div>
+      </div>
+      <div class="preview-body">
+
+        <div class="city-scene">
+          <div class="city-title">⬚ Live City Replica · Sector 04</div>
+          <div class="floor-grid"></div>
+
+          <svg class="city-svg" viewBox="0 0 600 360" preserveAspectRatio="xMidYEnd meet" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="bldg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#1E40AF" stop-opacity="0.4"/>
+              </linearGradient>
+              <linearGradient id="bldg2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.85"/>
+                <stop offset="100%" stop-color="#1D4ED8" stop-opacity="0.35"/>
+              </linearGradient>
+              <linearGradient id="bldg3" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.7"/>
+                <stop offset="100%" stop-color="#155E75" stop-opacity="0.3"/>
+              </linearGradient>
+              <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+
+            <g opacity="0.45">
+              <rect x="40"  y="200" width="38" height="120" fill="url(#bldg2)"/>
+              <rect x="90"  y="180" width="34" height="140" fill="url(#bldg2)"/>
+              <rect x="135" y="210" width="30" height="110" fill="url(#bldg3)"/>
+              <rect x="475" y="195" width="36" height="125" fill="url(#bldg2)"/>
+              <rect x="520" y="175" width="32" height="145" fill="url(#bldg2)"/>
+              <rect x="558" y="205" width="28" height="115" fill="url(#bldg3)"/>
+            </g>
+
+            <g filter="url(#glow)">
+              <rect x="270" y="80" width="60" height="240" fill="url(#bldg)" stroke="#60A5FA" stroke-width="1"/>
+              <rect x="180" y="140" width="50" height="180" fill="url(#bldg)" stroke="#60A5FA" stroke-width="1"/>
+              <rect x="235" y="170" width="32" height="150" fill="url(#bldg2)" stroke="#60A5FA" stroke-width="1"/>
+              <rect x="335" y="160" width="40" height="160" fill="url(#bldg2)" stroke="#60A5FA" stroke-width="1"/>
+              <rect x="380" y="120" width="48" height="200" fill="url(#bldg)" stroke="#60A5FA" stroke-width="1"/>
+              <rect x="432" y="180" width="36" height="140" fill="url(#bldg2)" stroke="#60A5FA" stroke-width="1"/>
+              <line x1="300" y1="80" x2="300" y2="55" stroke="#60A5FA" stroke-width="1.5"/>
+              <circle cx="300" cy="52" r="3" fill="#06B6D4"/>
+            </g>
+
+            <g class="windows">
+              <rect class="win" x="278" y="95"  width="6" height="6"/><rect class="win" x="290" y="95"  width="6" height="6"/><rect class="win" x="302" y="95"  width="6" height="6"/><rect class="win" x="314" y="95"  width="6" height="6"/>
+              <rect class="win" x="278" y="115" width="6" height="6"/><rect class="win" x="290" y="115" width="6" height="6"/><rect class="win" x="302" y="115" width="6" height="6"/><rect class="win" x="314" y="115" width="6" height="6"/>
+              <rect class="win" x="278" y="135" width="6" height="6"/><rect class="win" x="290" y="135" width="6" height="6"/><rect class="win" x="302" y="135" width="6" height="6"/><rect class="win" x="314" y="135" width="6" height="6"/>
+              <rect class="win" x="278" y="155" width="6" height="6"/><rect class="win" x="290" y="155" width="6" height="6"/><rect class="win" x="302" y="155" width="6" height="6"/><rect class="win" x="314" y="155" width="6" height="6"/>
+              <rect class="win" x="278" y="175" width="6" height="6"/><rect class="win" x="290" y="175" width="6" height="6"/><rect class="win" x="302" y="175" width="6" height="6"/><rect class="win" x="314" y="175" width="6" height="6"/>
+              <rect class="win" x="278" y="195" width="6" height="6"/><rect class="win" x="290" y="195" width="6" height="6"/><rect class="win" x="302" y="195" width="6" height="6"/><rect class="win" x="314" y="195" width="6" height="6"/>
+              <rect class="win" x="278" y="215" width="6" height="6"/><rect class="win" x="290" y="215" width="6" height="6"/><rect class="win" x="302" y="215" width="6" height="6"/><rect class="win" x="314" y="215" width="6" height="6"/>
+              <rect class="win" x="278" y="235" width="6" height="6"/><rect class="win" x="290" y="235" width="6" height="6"/><rect class="win" x="302" y="235" width="6" height="6"/><rect class="win" x="314" y="235" width="6" height="6"/>
+              <rect class="win" x="278" y="255" width="6" height="6"/><rect class="win" x="290" y="255" width="6" height="6"/><rect class="win" x="302" y="255" width="6" height="6"/><rect class="win" x="314" y="255" width="6" height="6"/>
+              <rect class="win" x="278" y="275" width="6" height="6"/><rect class="win" x="290" y="275" width="6" height="6"/><rect class="win" x="302" y="275" width="6" height="6"/><rect class="win" x="314" y="275" width="6" height="6"/>
+              <rect class="win" x="278" y="295" width="6" height="6"/><rect class="win" x="290" y="295" width="6" height="6"/><rect class="win" x="302" y="295" width="6" height="6"/><rect class="win" x="314" y="295" width="6" height="6"/>
+              <rect class="win" x="188" y="155" width="5" height="5"/><rect class="win" x="200" y="155" width="5" height="5"/><rect class="win" x="212" y="155" width="5" height="5"/>
+              <rect class="win" x="188" y="175" width="5" height="5"/><rect class="win" x="200" y="175" width="5" height="5"/><rect class="win" x="212" y="175" width="5" height="5"/>
+              <rect class="win" x="188" y="195" width="5" height="5"/><rect class="win" x="200" y="195" width="5" height="5"/><rect class="win" x="212" y="195" width="5" height="5"/>
+              <rect class="win" x="188" y="215" width="5" height="5"/><rect class="win" x="200" y="215" width="5" height="5"/><rect class="win" x="212" y="215" width="5" height="5"/>
+              <rect class="win" x="188" y="235" width="5" height="5"/><rect class="win" x="200" y="235" width="5" height="5"/><rect class="win" x="212" y="235" width="5" height="5"/>
+              <rect class="win" x="188" y="255" width="5" height="5"/><rect class="win" x="200" y="255" width="5" height="5"/><rect class="win" x="212" y="255" width="5" height="5"/>
+              <rect class="win" x="188" y="275" width="5" height="5"/><rect class="win" x="200" y="275" width="5" height="5"/><rect class="win" x="212" y="275" width="5" height="5"/>
+              <rect class="win" x="188" y="295" width="5" height="5"/><rect class="win" x="200" y="295" width="5" height="5"/><rect class="win" x="212" y="295" width="5" height="5"/>
+              <rect class="win" x="388" y="135" width="5" height="5"/><rect class="win" x="400" y="135" width="5" height="5"/><rect class="win" x="412" y="135" width="5" height="5"/>
+              <rect class="win" x="388" y="155" width="5" height="5"/><rect class="win" x="400" y="155" width="5" height="5"/><rect class="win" x="412" y="155" width="5" height="5"/>
+              <rect class="win" x="388" y="175" width="5" height="5"/><rect class="win" x="400" y="175" width="5" height="5"/><rect class="win" x="412" y="175" width="5" height="5"/>
+              <rect class="win" x="388" y="195" width="5" height="5"/><rect class="win" x="400" y="195" width="5" height="5"/><rect class="win" x="412" y="195" width="5" height="5"/>
+              <rect class="win" x="388" y="215" width="5" height="5"/><rect class="win" x="400" y="215" width="5" height="5"/><rect class="win" x="412" y="215" width="5" height="5"/>
+              <rect class="win" x="388" y="235" width="5" height="5"/><rect class="win" x="400" y="235" width="5" height="5"/><rect class="win" x="412" y="235" width="5" height="5"/>
+              <rect class="win" x="388" y="255" width="5" height="5"/><rect class="win" x="400" y="255" width="5" height="5"/><rect class="win" x="412" y="255" width="5" height="5"/>
+              <rect class="win" x="388" y="275" width="5" height="5"/><rect class="win" x="400" y="275" width="5" height="5"/><rect class="win" x="412" y="275" width="5" height="5"/>
+              <rect class="win" x="388" y="295" width="5" height="5"/><rect class="win" x="400" y="295" width="5" height="5"/><rect class="win" x="412" y="295" width="5" height="5"/>
+            </g>
+
+            <g>
+              <circle cx="300" cy="75" r="4" fill="#06B6D4" filter="url(#glow)"><animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/></circle>
+              <circle cx="205" cy="135" r="3" fill="#22d3ee" filter="url(#glow)"><animate attributeName="r" values="2;4;2" dur="2.5s" repeatCount="indefinite"/></circle>
+              <circle cx="405" cy="115" r="3" fill="#22d3ee" filter="url(#glow)"><animate attributeName="r" values="2;4;2" dur="2.3s" repeatCount="indefinite"/></circle>
+            </g>
+          </svg>
+
+          <div class="pulse-ring" style="top: 25%; left: 50%;"></div>
+          <div class="pulse-ring" style="top: 45%; left: 35%; animation-delay: 1s;"></div>
+          <div class="pulse-ring" style="top: 40%; left: 68%; animation-delay: 2s;"></div>
+        </div>
+
+        <div class="data-panel">
+          <div class="live-indicator">LIVE TELEMETRY</div>
+          <div class="data-row"><div><div class="data-label">ENERGY · MW</div><div class="data-value" id="energy">4.27</div></div><div class="data-bar"></div></div>
+          <div class="data-row"><div><div class="data-label">TRAFFIC · FLOW</div><div class="data-value" id="traffic">87%</div></div><div class="data-bar"></div></div>
+          <div class="data-row"><div><div class="data-label">AIR · PM 2.5</div><div class="data-value" id="air">18.3</div></div><div class="data-bar"></div></div>
+          <div class="data-row"><div><div class="data-label">SENSORS · ON</div><div class="data-value" id="sensors">2,148</div></div><div class="data-bar"></div></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="features-head">
+      <div class="features-eyebrow">What's Coming</div>
+      <h2 class="features-title">A mirror of reality, <em>at every scale.</em></h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-num">01</div>
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="12"/><line x1="22" y1="8.5" x2="12" y2="12"/><line x1="2" y1="8.5" x2="12" y2="12"/></svg></div>
+        <h3>Real-Time Simulation</h3>
+        <p>Replicate physical systems with sub-second precision. Push state forward, rewind, branch and compare.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">02</div>
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <h3>Predictive Analytics</h3>
+        <p>Forecast failures, demand spikes, and cascading effects before they happen — with confidence intervals.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">03</div>
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/></svg></div>
+        <h3>IoT-Native Pipelines</h3>
+        <p>Ingest millions of events per second from sensors, devices, and SCADA — schema inferred, not configured.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">04</div>
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+        <h3>What-If Scenarios</h3>
+        <p>Test policies, perturbations, and edge cases against the live twin. Ship changes that survive contact with reality.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="socials">
+        <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+        <a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+        <a href="#" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>
+      </div>
+      <div class="footer-copy">© 2026 Techtrekkers.ai · Net Twin is part of the Techtrekkers ecosystem · <a href="https://techtrekkers.ai">techtrekkers.ai</a></div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  (function(){
+    const host = document.getElementById('twinkle-host');
+    for (let i = 0; i < 24; i++) {
+      const t = document.createElement('div');
+      t.className = 'twinkle';
+      t.style.top = Math.random() * 100 + '%';
+      t.style.left = Math.random() * 100 + '%';
+      t.style.animationDelay = (Math.random() * 3) + 's';
+      t.style.animationDuration = (2 + Math.random() * 3) + 's';
+      host.appendChild(t);
+    }
+  })();
+  (function(){
+    document.querySelectorAll('.windows .win').forEach(w => {
+      w.style.animationDelay = (Math.random() * 6) + 's';
+      w.style.animationDuration = (3 + Math.random() * 5) + 's';
+    });
+  })();
+  (function(){
+    const target = new Date('2026-05-26T00:00:00Z').getTime();
+    const $d=document.getElementById('d'),$h=document.getElementById('h'),$m=document.getElementById('m'),$s=document.getElementById('s');
+    const pad=n=>String(Math.max(0,n)).padStart(2,'0');
+    function tick(){
+      const diff = target - Date.now();
+      if (diff <= 0) return;
+      $d.textContent=pad(Math.floor(diff/86400000));
+      $h.textContent=pad(Math.floor((diff%86400000)/3600000));
+      $m.textContent=pad(Math.floor((diff%3600000)/60000));
+      $s.textContent=pad(Math.floor((diff%60000)/1000));
+    }
+    tick(); setInterval(tick, 1000);
+  })();
+  (function(){
+    const $e=document.getElementById('energy'),$t=document.getElementById('traffic'),$a=document.getElementById('air'),$s=document.getElementById('sensors');
+    const rand=(mn,mx,dp=2)=>(Math.random()*(mx-mn)+mn).toFixed(dp);
+    setInterval(()=>{
+      $e.textContent=rand(3.8,5.2);
+      $t.textContent=Math.floor(rand(75,95,0))+'%';
+      $a.textContent=rand(15,24,1);
+      $s.textContent=Math.floor(rand(2100,2200,0)).toLocaleString();
+    },1800);
+  })();
+  (function(){
+    const form=document.getElementById('notify'),msg=document.getElementById('msg');
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const email=form.querySelector('input').value.trim();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent='✗ Please enter a valid email.';msg.style.color='#fda4af';return;}
+      msg.textContent='✓ You\'re on the list. We\'ll be in touch.';msg.style.color='';form.reset();
+    });
+  })();
+  document.querySelectorAll('.feature-card').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      card.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+      card.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+    });
+  });
+  (function(){
+    const hero=document.querySelector('.hero'),h1=hero.querySelector('h1');
+    hero.addEventListener('mousemove',e=>{
+      const cx=e.clientX/window.innerWidth-0.5,cy=e.clientY/window.innerHeight-0.5;
+      h1.style.transform=`translate(${cx*8}px,${cy*6}px)`;
+    });
+    hero.addEventListener('mouseleave',()=>{h1.style.transform='';});
+  })();
+</script>
+</body>
+</html>
