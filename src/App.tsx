@@ -84,6 +84,7 @@ import Navigation from "./pages/LandingPages/Navbar";
 import AppFooter from "./pages/LandingPages/Footer";
 import Resume from "./pages/Resume";
 import Portfolio from "./pages/Portfolio";
+import Billing from "./pages/Billing";
 
 const queryClient = new QueryClient();
 
@@ -92,13 +93,13 @@ const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
 
   // Hide Navbar on these routes
-  const hideNavbarPaths = ["/dashboard", "/wizard","/resume","/portfolio"];
+  const hideNavbarPaths = ["/dashboard", "/wizard","/resume","/portfolio","/billing"];
   const hideOnChatbot = location.pathname.startsWith("/chatbot");
   const shouldHideNavbar =
     hideNavbarPaths.includes(location.pathname) || hideOnChatbot;
 
   // Hide Footer on these routes
-  const hideFooterPaths = ["/chatbot", "/wizard", "/resume","/portfolio"  ];
+  const hideFooterPaths = ["/chatbot", "/wizard", "/resume","/portfolio","/billing"];
   const shouldHideFooter =
     hideFooterPaths.some((path) => location.pathname.startsWith(path));
 
@@ -140,6 +141,14 @@ const App = () => (
                 <Route path="/wizard" element={<Index />} />
                 <Route path="/resume" element={<Resume />} />
                 <Route path="/portfolio" element={<Portfolio />} />
+                <Route
+                  path="/billing"
+                  element={
+                    <ProtectedRoute>
+                      <Billing />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </LayoutWrapper>

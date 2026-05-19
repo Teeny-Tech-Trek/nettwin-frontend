@@ -219,7 +219,7 @@
 // };
 
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'; 
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/api.service';
 
@@ -228,6 +228,16 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  profilePicture?: string;
+  emailVerified?: boolean;
+  onboardingCompleted?: boolean;
+}
+
+// Returned to callers (e.g. Login/Signup pages) so they can decide where
+// to redirect — new Google users go to /wizard, returning users to /dashboard.
+export interface GoogleAuthResult {
+  isNewUser: boolean;
+  linked: boolean;
 }
 
 interface AuthContextType {
@@ -235,8 +245,8 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  googleAuth: (googleData: any) => Promise<void>;
-  logout: () => void;
+  googleAuth: (idToken: string) => Promise<GoogleAuthResult>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -254,11 +264,40 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Backend (src/modules/auth) returns { accessToken, user } and sets the refresh
+// token as an httpOnly cookie. We persist accessToken+user in localStorage to
+// keep the existing "stay logged in" UX; axios attaches it as Bearer on every
+// request.
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  const persistSession = (accessToken: string, userData: User) => {
+    setUser(userData);
+    setToken(accessToken);
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const clearSession = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
+
+  const getProfile = async () => {
+    try {
+      const res = await authService.getProfile();
+      const userData = res.user ?? res;
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -269,28 +308,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       } else {
-        // If we have token but no user data, fetch profile
         getProfile();
       }
     }
     setIsLoading(false);
   }, []);
-  
+
   const signup = async (name: string, email: string, password: string) => {
     try {
       const data = await authService.signup(name, email, password);
-
-      const { user: userData, token: authToken } = data;
-
-      // Store in state and localStorage
-      setUser(userData);
-      setToken(authToken);
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      persistSession(data.accessToken, data.user);
 
       toast({
         title: 'Welcome to Digital Twin!',
-        description: 'Your digital twin has been created successfully.',
+        description: 'Your account has been created successfully.',
       });
     } catch (error: any) {
       toast({
@@ -305,14 +336,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       const data = await authService.login(email, password);
-
-      const { user: userData, token: authToken } = data;
-
-      // Store in state and localStorage
-      setUser(userData);
-      setToken(authToken);
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      persistSession(data.accessToken, data.user);
 
       toast({
         title: 'Welcome back!',
@@ -328,27 +352,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const googleAuth = async (googleData: any) => {
+  // Accepts the raw Google ID token (response.credential from Google Identity
+  // Services). The backend verifies the JWT against GOOGLE_CLIENT_ID — never
+  // pass a client-decoded payload here.
+  const googleAuth = async (idToken: string): Promise<GoogleAuthResult> => {
     try {
-      const data = await authService.googleAuth({
-        googleId: googleData.googleId,
-        name: googleData.name,
-        email: googleData.email,
-        avatar: googleData.imageUrl,
-      });
-
-      const { user: userData, token: authToken } = data;
-
-      // Store in state and localStorage
-      setUser(userData);
-      setToken(authToken);
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      const data = await authService.googleAuth(idToken);
+      persistSession(data.accessToken, data.user);
 
       toast({
-        title: 'Welcome to Digital Twin!',
-        description: 'Successfully signed in with Google.',
+        title: data.isNewUser ? 'Welcome to Digital Twin!' : 'Welcome back!',
+        description: data.message || 'Successfully signed in with Google.',
       });
+
+      return { isNewUser: !!data.isNewUser, linked: !!data.linked };
     } catch (error: any) {
       toast({
         title: 'Google authentication failed',
@@ -359,26 +376,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getProfile = async () => {
+  const logout = async () => {
     try {
-      const userData = await authService.getProfile();
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      // Server-side logout revokes refresh tokens and clears the httpOnly
+      // cookie. Best-effort: clear local state even if the call fails so the
+      // user is never stuck "logged in" client-side.
+      await authService.logout();
     } catch (error) {
-      console.error('Failed to fetch profile:', error);
+      console.error('Server logout failed; clearing local session anyway:', error);
+    } finally {
+      clearSession();
+      toast({
+        title: 'Logged out',
+        description: 'You have been successfully logged out.',
+      });
     }
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    toast({
-      title: 'Logged out',
-      description: 'You have been successfully logged out.',
-    });
   };
 
   const value = {

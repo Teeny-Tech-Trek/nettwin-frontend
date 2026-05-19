@@ -22,19 +22,33 @@ export const authService = {
     return response.data;
   },
 
-  // Google OAuth
-  googleAuth: async (googleData: {
-    googleId: string;
-    name: string;
-    email: string;
-    avatar: string;
-  }) => {
+  // Google OAuth.
+  // The backend (POST /api/auth/google) expects `{ token }` where `token`
+  // is the raw Google ID JWT (`response.credential` from Google Identity Services).
+  // It verifies the token server-side against GOOGLE_CLIENT_ID — never send
+  // a client-decoded payload.
+  googleAuth: async (idToken: string) => {
     const response = await axiosInstance.post('/auth/google', {
-      googleId: googleData.googleId,
-      name: googleData.name,
-      email: googleData.email,
-      avatar: googleData.avatar,
+      token: idToken,
     });
+    return response.data;
+  },
+
+  // Rotate access token using the httpOnly refresh cookie.
+  // The cookie travels because axios has withCredentials enabled.
+  // The backend controller reads the cookie, but its Joi schema currently
+  // requires a non-empty `refreshToken` field in the body — we send a
+  // placeholder to satisfy validation. (See notes: backend bug.)
+  refresh: async () => {
+    const response = await axiosInstance.post('/auth/refresh', {
+      refreshToken: 'cookie',
+    });
+    return response.data;
+  },
+
+  // Server-side logout: revokes all refresh tokens and clears the cookie.
+  logout: async () => {
+    const response = await axiosInstance.post('/auth/logout');
     return response.data;
   },
 
@@ -140,12 +154,19 @@ export const leadService = {
   },
 };
 
+// Billing lives in features/billing (its own types, Razorpay glue, hooks).
+// Re-exporting here keeps the convention consistent with other domain
+// services so callers can do `import { billingService } from '@/services/api.service'`.
+import { billingService } from '@/features/billing/services/billing.service';
+export { billingService };
+
 // Export all services as a single object (optional)
 export const apiService = {
   auth: authService,
   digitalTwin: digitalTwinService,
   chat: chatService,
   lead: leadService,
+  billing: billingService,
 };
 
 export default apiService;

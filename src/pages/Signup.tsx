@@ -1,361 +1,828 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, Info, Loader2, Scan, CreditCard, Sparkles, Users, MessageCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { GoogleOAuth } from "@/components/GoogleOAuth";
-import logoImg from "@/Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png"
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import logoImg from "@/Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png";
 
+// ════════════ FEATURES (same source as FeaturedSection) ════════════
+const SIGNUP_FEATURES = [
+  {
+    title: "AI-Powered Intelligence",
+    description: "Learns your unique style",
+    image: "/FeaturePage/BrainImg.png",
+  },
+  {
+    title: "Instant QR Access",
+    description: "Unique QR per client",
+    image: "/FeaturePage/QrImg.png",
+  },
+  {
+    title: "24/7 Availability",
+    description: "Always on, never offline",
+    image: "/FeaturePage/ClockImg.png",
+  },
+  {
+    title: "Secure & Private",
+    description: "Enterprise-grade encrypted data",
+    image: "/FeaturePage/ShieldImg.png",
+  },
+  {
+      title: "Instant Responses",
+      description:
+        "Provide immediate, intelligent responses to inquiries.",
+      image: "/FeaturePage/LightningImg.png",
+    },
+    {
+      title: "Multi-Client Management",
+      description:
+        "Manage multiple digital twins.",
+      image: "/FeaturePage/GroupImg.png",
+    },
+
+];
 
 const Signup = () => {
+  // ════════════ STATE & HOOKS ════════════
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signup } = useAuth();
 
+  // New Google users go through the wizard like email signups; returning users
+  // (Google account already linked) skip straight to the dashboard.
+  // Google renders its own button into `googleBtnRef` (popup flow — no FedCM needed).
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const {
+    isLoading: isGoogleLoading,
+    isReady: isGoogleReady,
+    hasError: googleHasError,
+    errorMessage: googleErrorMessage,
+  } = useGoogleAuth({
+    buttonContainerRef: googleBtnRef,
+    text: "signup_with",
+    onSuccess: ({ isNewUser }) => navigate(isNewUser ? "/wizard" : "/dashboard"),
+  });
+
+  // ════════════ SIGNUP HANDLER — same logic + confirm password check ════════════
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Confirm password validation
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      // ── ORIGINAL SIGNUP CALL — UNCHANGED ──
       await signup(name, email, password);
       navigate("/wizard");
     } catch (error) {
       // Error handling is done in the auth context
-      console.error('Signup error:', error);
+      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const features = [
-    {
-      icon: Scan,
-      title: "Smart Scanner",
-      description: "Scan business cards instantly"
-    },
-    {
-      icon: CreditCard,
-      title: "NFC Integration",
-      description: "Tap to share your digital profile"
-    },
-    {
-      icon: MessageCircle,
-      title: "AI Networking",
-      description: "Your twin talks for you"
-    },
-    {
-      icon: Users,
-      title: "Smart Connections",
-      description: "Build meaningful relationships"
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 relative overflow-hidden flex items-center justify-center p-6 pt-24">
-      {/* Premium animated background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            x: [0, 50, 0],
-            y: [0, -30, 0],
+    <div
+      className="min-h-screen relative overflow-hidden flex items-center justify-center px-4 sm:px-6 py-10 sm:py-12 pt-24 sm:pt-32"
+      style={{ background: "#05050f" }}
+    >
+      <style>{`
+        @keyframes signup-pulse { 0%,100%{opacity:0.25} 50%{opacity:1} }
+        @keyframes signup-glow {
+          0%,100% { transform: translate(0,0) scale(1); }
+          50%     { transform: translate(20px,-15px) scale(1.05); }
+        }
+        @keyframes card-edge-glow {
+          0%,100% { box-shadow: 0 0 60px rgba(139,92,246,0.35), 0 0 120px rgba(59,130,246,0.25), inset 0 0 0 1px rgba(168,85,247,0.45); }
+          50%     { box-shadow: 0 0 80px rgba(139,92,246,0.55), 0 0 160px rgba(59,130,246,0.40), inset 0 0 0 1px rgba(168,85,247,0.65); }
+        }
+        @keyframes btn-shine {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+        @keyframes signup-feat-bounce {
+          0%, 100% { transform: perspective(600px) translateY(0) rotateX(0deg) scale(1); }
+          50%      { transform: perspective(600px) translateY(-6px) rotateX(5deg) scale(1.04); }
+        }
+        /* ── Chrome/Edge autofill override — preserve dark glassmorphic look ── */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px rgba(17,12,33,1) inset !important;
+          box-shadow: 0 0 0 1000px rgba(17,12,33,1) inset !important;
+          -webkit-text-fill-color: #ffffff !important;
+          caret-color: #ffffff !important;
+          border: 1px solid rgba(168,85,247,0.25) !important;
+          transition: background-color 600000s 0s, color 600000s 0s !important;
+        }
+      `}</style>
+
+      {/* ════════════ BACKGROUND (same as Login) ════════════ */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute"
+          style={{
+            top: "-10%",
+            right: "-15%",
+            width: "70%",
+            height: "100%",
+            background:
+              "radial-gradient(ellipse at center, rgba(139,92,246,0.25) 0%, rgba(168,85,247,0.15) 35%, transparent 65%)",
+            animation: "signup-glow 14s ease-in-out infinite",
           }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute top-1/4 left-1/4 w-[700px] h-[700px] bg-gradient-to-r from-blue-500/20 to-cyan-400/20 rounded-full blur-[120px]"
         />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [0, -90, 0],
-            x: [0, -60, 0],
-            y: [0, 40, 0],
+        <div
+          className="absolute"
+          style={{
+            top: "10%",
+            left: "-15%",
+            width: "60%",
+            height: "80%",
+            background:
+              "radial-gradient(ellipse at center, rgba(59,130,246,0.18) 0%, rgba(99,102,241,0.10) 35%, transparent 65%)",
           }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-gradient-to-r from-purple-500/25 to-pink-500/25 rounded-full blur-[100px]"
         />
-        
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
-          <motion.div
+      </div>
+
+      {/* Wave dot pattern — right side only (left removed for cleaner look) */}
+      <WaveDots side="right" />
+
+      {/* Particles — confined to right half so left side stays clean */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
+        {Array.from({ length: 50 }).map((_, i) => (
+          <div
             key={i}
-            animate={{
-              y: [0, -30, 0],
-              x: [0, Math.sin(i) * 20, 0],
-              opacity: [0.3, 1, 0.3],
-            }}
-            transition={{
-              duration: 3 + i * 0.5,
-              repeat: Infinity,
-              delay: i * 0.2,
-            }}
-            className="absolute w-1 h-1 bg-white/30 rounded-full"
+            className="absolute rounded-full bg-white"
             style={{
+              width: `${Math.random() * 1.5 + 0.5}px`,
+              height: `${Math.random() * 1.5 + 0.5}px`,
+              left: `${50 + Math.random() * 50}%`,
+              top: `${Math.random() * 100}%`,
+              opacity: Math.random() * 0.5 + 0.1,
+              animation: `signup-pulse ${
+                3 + Math.random() * 4
+              }s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          />
+        ))}
+      </div>
+      {/* Particles on mobile (no left panel, so spread across full width) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none lg:hidden">
+        {Array.from({ length: 70 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white"
+            style={{
+              width: `${Math.random() * 1.5 + 0.5}px`,
+              height: `${Math.random() * 1.5 + 0.5}px`,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
+              opacity: Math.random() * 0.5 + 0.1,
+              animation: `signup-pulse ${
+                3 + Math.random() * 4
+              }s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`,
             }}
           />
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-12 max-w-7xl w-full items-center">
-        {/* Left side - Features */}
+      {/* ════════════ 2-COLUMN WRAPPER: features (left) + form (right) ════════════ */}
+      <div className="relative z-10 w-full max-w-6xl grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+        {/* ─────── LEFT: 4 FEATURES (hidden on mobile, shown on lg+) ─────── */}
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="hidden lg:block"
         >
-          <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+          <div className="mb-8">
+            <h2
+              className="hero-font font-extrabold leading-tight tracking-tight"
+              style={{ fontSize: "clamp(2.4rem,3.6vw,3.4rem)" }}
             >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-6"
+              <span className="text-white font-syne-bold">Why join </span>
+              <span className="font-syne-bold"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #22d3ee 0%, #3b82f6 50%, #a855f7 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
               >
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span className="text-sm font-medium text-white">The Future of Networking</span>
-              </motion.div>
-              
-              <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-cyan-200 to-blue-200 bg-clip-text text-transparent mb-6">
-                Your Digital Twin Awaits
-              </h1>
-              <p className="text-xl text-gray-300 leading-relaxed">
-                Revolutionize how you network with AI-powered digital twins, 
-                smart scanning, and NFC technology. Let your digital presence 
-                work for you 24/7.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  className="p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-cyan-500/30 transition-all duration-300"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-3">
-                    <feature.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-white mb-1">{feature.title}</h3>
-                  <p className="text-sm text-gray-400">{feature.description}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="flex gap-8 pt-8"
+                NetTwin
+              </span>
+              <span className="text-white">?</span>
+            </h2>
+            <p
+              className="body-font text-lg mt-3 leading-relaxed"
+              style={{ color: "rgba(255,255,255,0.6)" }}
             >
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">10+</div>
-                <div className="text-sm text-gray-400">Active Twins</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">1K+</div>
-                <div className="text-sm text-gray-400">Connections Made</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">99%</div>
-                <div className="text-sm text-gray-400">Satisfaction</div>
-              </div>
-            </motion.div>
+              Everything you need to build your AI-powered digital presence
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-20 gap-y-8">
+            {SIGNUP_FEATURES.map((feat, idx) => (
+              <SignupFeatureCard
+                key={feat.title}
+                title={feat.title}
+                description={feat.description}
+                image={feat.image}
+                delay={0.15 + idx * 0.1}
+                bounceDelay={idx * 0.25}
+              />
+            ))}
           </div>
         </motion.div>
 
-        {/* Right side - Signup Form */}
+        {/* ─────── RIGHT: SIGNUP FORM (unchanged) ─────── */}
         <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="flex justify-center"
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-md mx-auto lg:mx-0 lg:ml-auto"
+      >
+        <div
+          className="relative rounded-3xl sm:rounded-[2rem] p-5 sm:p-9"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(20,18,40,0.55) 0%, rgba(30,20,55,0.55) 50%, rgba(40,25,70,0.55) 100%)",
+            backdropFilter: "blur(24px) saturate(140%)",
+            WebkitBackdropFilter: "blur(24px) saturate(140%)",
+            animation: "card-edge-glow 4s ease-in-out infinite",
+          }}
         >
-          <Card className="relative z-10 w-full max-w-md p-10 rounded-3xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl">
-            {/* Glow effect */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 blur-xl -z-10" />
-            
-            <motion.div 
-              className="flex flex-col items-center mb-10"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          {/* Top inner highlight */}
+          <div
+            className="absolute top-0 left-10 right-10 h-[1px] pointer-events-none rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent, rgba(192,132,252,0.6), transparent)",
+            }}
+          />
+
+          {/* ─────── LOGO ─────── */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="flex justify-center mb-5"
+          >
+            <motion.div
+              whileHover={{ rotate: -5, scale: 1.05 }}
+              transition={{ duration: 0.3 }}
+              className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl flex items-center justify-center"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(30,20,55,0.8) 0%, rgba(50,30,90,0.8) 100%)",
+                border: "1.5px solid rgba(168,85,247,0.5)",
+                boxShadow:
+                  "0 0 25px rgba(139,92,246,0.45), inset 0 0 12px rgba(168,85,247,0.2)",
+              }}
             >
-              <motion.div
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-                className="w-24 h-24 rounded-3xl  flex items-center justify-center mb-6 shadow-2xl shadow-cyan-500/25"
-              >
-                <img src={logoImg} alt="logo" />
-              </motion.div>
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
-                Join Digital Twin
-              </h1>
-              <p className="text-gray-400 text-[15px] text-center">
-                Create your digital twin and transform your networking experience
-              </p>
+              <img
+                src={logoImg}
+                alt="logo"
+                className="w-full h-full object-contain p-2"
+                draggable={false}
+              />
             </motion.div>
+          </motion.div>
 
-            <form onSubmit={handleSignup} className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-200">Full Name</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="focus:outline-none">
-                          <Info className="w-3.5 h-3.5 text-gray-500" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="rounded-xl bg-slate-800 border-slate-700">
-                        <p className="text-xs text-white">Your professional name</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Alex Johnson"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-12 rounded-2xl bg-slate-800/50 border-slate-600 text-white placeholder:text-gray-500 focus:border-cyan-500 transition-colors"
-                  required
+          {/* ─────── TITLE ─────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
+            className="text-center mb-6"
+          >
+            <h1
+              className="hero-font font-extrabold leading-tight tracking-tight"
+              style={{ fontSize: "clamp(1.6rem,3vw,2.1rem)" }}
+            >
+              <span className="text-white font-syne-bold">Create Your </span>
+              <span className="font-syne-bold"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #22d3ee 0%, #60a5fa 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Account
+              </span>
+            </h1>
+            <p
+              className="body-font text-sm mt-2"
+              style={{ color: "rgba(255,255,255,0.55)" }}
+            >
+              Join NetTwin and build your digital presence
+            </p>
+          </motion.div>
+
+          {/* ─────── FORM ─────── */}
+          <form onSubmit={handleSignup} className="space-y-3.5 sm:space-y-4">
+            {/* Full Name */}
+            <FormField
+              label="Full Name"
+              icon={
+                <User
+                  className="w-4 h-4"
+                  style={{ color: "rgba(255,255,255,0.5)" }}
+                  strokeWidth={2}
                 />
-              </div>
+              }
+              delay={0.3}
+            >
+              <input
+                id="name"
+                type="text"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="body-font w-full h-12 pl-11 pr-4 rounded-full text-white placeholder:text-white/35 focus:outline-none transition-all"
+                style={inputStyle}
+                onFocus={onInputFocus}
+                onBlur={onInputBlur}
+              />
+            </FormField>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-200">Email</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="focus:outline-none">
-                          <Info className="w-3.5 h-3.5 text-gray-500" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="rounded-xl bg-slate-800 border-slate-700">
-                        <p className="text-xs text-white">We'll send confirmation to this email</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 rounded-2xl bg-slate-800/50 border-slate-600 text-white placeholder:text-gray-500 focus:border-cyan-500 transition-colors"
-                  required
+            {/* Email */}
+            <FormField
+              label="Email Address"
+              icon={
+                <Mail
+                  className="w-4 h-4"
+                  style={{ color: "rgba(255,255,255,0.5)" }}
+                  strokeWidth={2}
                 />
-              </div>
+              }
+              delay={0.38}
+            >
+              <input
+                id="email"
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="body-font w-full h-12 pl-11 pr-4 rounded-full text-white placeholder:text-white/35 focus:outline-none transition-all"
+                style={inputStyle}
+                onFocus={onInputFocus}
+                onBlur={onInputBlur}
+              />
+            </FormField>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-200">Password</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="focus:outline-none">
-                          <Info className="w-3.5 h-3.5 text-gray-500" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="rounded-xl bg-slate-800 border-slate-700">
-                        <p className="text-xs text-white">At least 8 characters</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Input
+            {/* Password + Confirm Password (one row) */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                label="Password"
+                icon={
+                  <Lock
+                    className="w-4 h-4"
+                    style={{ color: "rgba(255,255,255,0.5)" }}
+                    strokeWidth={2}
+                  />
+                }
+                delay={0.46}
+              >
+                <input
                   id="password"
-                  type="password"
-                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 rounded-2xl bg-slate-800/50 border-slate-600 text-white placeholder:text-gray-500 focus:border-cyan-500 transition-colors"
                   required
                   minLength={8}
+                  className="body-font w-full h-12 pl-11 pr-12 rounded-full text-white placeholder:text-white/35 focus:outline-none transition-all"
+                  style={inputStyle}
+                  onFocus={onInputFocus}
+                  onBlur={onInputBlur}
                 />
-              </div>
+                <PasswordToggle
+                  show={showPassword}
+                  onToggle={() => setShowPassword((s) => !s)}
+                />
+              </FormField>
 
-              <motion.div 
-                whileHover={{ scale: 1.02 }} 
-                whileTap={{ scale: 0.98 }}
-                className="pt-4"
+              <FormField
+                label="Confirm Password"
+                icon={
+                  <Lock
+                    className="w-4 h-4"
+                    style={{ color: "rgba(255,255,255,0.5)" }}
+                    strokeWidth={2}
+                  />
+                }
+                delay={0.54}
               >
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 rounded-2xl text-base font-medium bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white border-none shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300"
-                >
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="body-font w-full h-12 pl-11 pr-12 rounded-full text-white placeholder:text-white/35 focus:outline-none transition-all"
+                  style={inputStyle}
+                  onFocus={onInputFocus}
+                  onBlur={onInputBlur}
+                />
+                <PasswordToggle
+                  show={showConfirmPassword}
+                  onToggle={() => setShowConfirmPassword((s) => !s)}
+                />
+              </FormField>
+            </div>
+
+            {/* Create Account Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.62, duration: 0.5 }}
+              className="pt-3"
+            >
+              <motion.button
+                type="submit"
+                disabled={isLoading}
+                whileHover={!isLoading ? { scale: 1.02 } : undefined}
+                whileTap={!isLoading ? { scale: 0.98 } : undefined}
+                className="body-font relative w-full h-12 rounded-full overflow-hidden text-white font-bold text-base disabled:opacity-70 disabled:cursor-not-allowed"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #22d3ee 0%, #3b82f6 50%, #a855f7 100%)",
+                  boxShadow:
+                    "0 8px 30px rgba(59,130,246,0.45), 0 0 25px rgba(34,211,238,0.3)",
+                }}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2.5">
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Creating Your Twin...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-2 h-5 w-5" />
-                      Create Digital Twin
+                      <Sparkles
+                        className="w-4 h-4"
+                        fill="white"
+                        strokeWidth={0}
+                      />
+                      Create Account
                     </>
                   )}
-                </Button>
-              </motion.div>
+                </span>
+                {!isLoading && (
+                  <span
+                    className="pointer-events-none absolute top-0 bottom-0 w-1/3"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+                      animation: "btn-shine 2.5s ease-in-out infinite",
+                    }}
+                  />
+                )}
+              </motion.button>
+            </motion.div>
 
-              {/* <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-600" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-slate-900 text-gray-400">Or continue with</span>
-                </div>
-              </div> */}
+            {/* "or" divider */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.4 }}
+              className="relative flex items-center justify-center pt-4 pb-2"
+            >
+              <div
+                className="absolute inset-x-0 top-1/2 h-px"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
+                }}
+              />
+              <span
+                className="body-font relative px-4 text-sm bg-transparent"
+                style={{ color: "rgba(255,255,255,0.45)" }}
+              >
+                or
+              </span>
+            </motion.div>
 
-              {/* <GoogleOAuth type="signup" /> */}
+            {/* Google sign-in: GIS renders its official button into the ref
+                div. Placeholder shows only while GIS loads, overlay only
+                during an active sign-in, errors render BELOW the button. */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.78, duration: 0.4 }}
+              className="space-y-2"
+            >
+              <div className="relative w-full flex items-center justify-center min-h-[44px]">
+                <div ref={googleBtnRef} className="flex items-center justify-center" />
 
-              <div className="text-center space-y-4 pt-6">
-                <p className="text-gray-400 text-sm">
-                  Already have an account?{" "}
-                  <Link to="/login" className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
-                    Sign in to your twin
-                  </Link>
-                </p>
-                <Link to="/" className="text-sm text-gray-500 hover:text-gray-300 transition-colors block">
-                  ← Back to home
-                </Link>
+                {!isGoogleReady && !googleHasError && (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-white/40 rounded-full"
+                    style={{
+                      background: "rgba(15,10,30,0.40)",
+                      border: "1px dashed rgba(168,85,247,0.28)",
+                    }}
+                  >
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Loading Google...</span>
+                  </div>
+                )}
+
+                {isGoogleLoading && (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-white/85 rounded-full"
+                    style={{ background: "rgba(15,10,30,0.92)" }}
+                  >
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Signing in...</span>
+                  </div>
+                )}
               </div>
-            </form>
-          </Card>
+
+              {googleHasError && googleErrorMessage && (
+                <p className="body-font text-[11px] leading-snug text-red-300/90 text-center px-2">
+                  {googleErrorMessage}
+                </p>
+              )}
+            </motion.div>
+
+            {/* Bottom link */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.86, duration: 0.4 }}
+              className="text-center pt-3 body-font"
+            >
+              <p
+                className="text-sm"
+                style={{ color: "rgba(255,255,255,0.55)" }}
+              >
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="font-semibold transition-colors hover:underline"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, #22d3ee 0%, #60a5fa 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  Sign In
+                </Link>
+              </p>
+            </motion.div>
+          </form>
+
+          {/* Bottom reflection glow */}
+          <div
+            className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-12 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, rgba(139,92,246,0.4) 0%, transparent 70%)",
+              filter: "blur(20px)",
+            }}
+          />
+        </div>
         </motion.div>
       </div>
     </div>
+  );
+};
+
+// ════════════ LEFT-SIDE FEATURE CARD (compact version of FeaturedSection card) ════════════
+interface SignupFeatureCardProps {
+  title: string;
+  description: string;
+  image: string;
+  delay?: number;
+  bounceDelay?: number;
+}
+
+const SignupFeatureCard: React.FC<SignupFeatureCardProps> = ({
+  title,
+  description,
+  image,
+  delay = 0,
+  bounceDelay = 0,
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 15 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.5 }}
+    className="flex items-center gap-4"
+  >
+    <div
+      className="flex-shrink-0 w-24 h-24 flex items-center justify-center"
+      style={{
+        animation: `signup-feat-bounce 3.2s ease-in-out ${bounceDelay}s infinite`,
+        transformStyle: "preserve-3d",
+      }}
+    >
+      <img
+        src={image}
+        alt={title}
+        loading="eager"
+        decoding="sync"
+        draggable={false}
+        className="w-full h-full scale-110 object-contain select-none"
+        style={{
+          filter: "drop-shadow(0 0 24px rgba(99,102,241,0.5))",
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+    <div className="flex-1 min-w-0">
+      <h3 className="hero-font text-lg font-bold text-white leading-snug font-syne-bold">
+        {title}
+      </h3>
+      <p
+        className="body-font text-[15px] leading-relaxed mt-1.5"
+        style={{ color: "rgba(255,255,255,0.6)" }}
+      >
+        {description}
+      </p>
+    </div>
+  </motion.div>
+);
+
+/* ============================================================
+   Shared input styling helpers
+============================================================ */
+const inputStyle: React.CSSProperties = {
+  background: "rgba(15,10,30,0.55)",
+  border: "1px solid rgba(168,85,247,0.25)",
+};
+
+const onInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+  e.currentTarget.style.borderColor = "rgba(192,132,252,0.55)";
+};
+
+const onInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  e.currentTarget.style.borderColor = "rgba(168,85,247,0.25)";
+};
+
+/* ============================================================
+   Form Field wrapper
+============================================================ */
+interface FormFieldProps {
+  label: string;
+  icon: React.ReactNode;
+  delay: number;
+  children: React.ReactNode;
+}
+
+const FormField: React.FC<FormFieldProps> = ({
+  label,
+  icon,
+  delay,
+  children,
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.5 }}
+    className="space-y-1.5"
+  >
+    <label className="body-font block text-sm font-semibold text-white/90">
+      {label}
+    </label>
+    <div className="relative">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+        {icon}
+      </div>
+      {children}
+    </div>
+  </motion.div>
+);
+
+/* ============================================================
+   Password show/hide toggle button
+============================================================ */
+const PasswordToggle: React.FC<{ show: boolean; onToggle: () => void }> = ({
+  show,
+  onToggle,
+}) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/5 transition-colors z-10"
+    aria-label={show ? "Hide password" : "Show password"}
+  >
+    {show ? (
+      <EyeOff
+        className="w-4 h-4"
+        style={{ color: "rgba(255,255,255,0.55)" }}
+        strokeWidth={2}
+      />
+    ) : (
+      <Eye
+        className="w-4 h-4"
+        style={{ color: "rgba(255,255,255,0.55)" }}
+        strokeWidth={2}
+      />
+    )}
+  </button>
+);
+
+/* ============================================================
+   Wave Dots — flowing curves on left & right of background
+============================================================ */
+const WaveDots = ({ side }: { side: "left" | "right" }) => {
+  const isLeft = side === "left";
+  return (
+    <svg
+      className="absolute pointer-events-none"
+      style={{
+        top: "20%",
+        [isLeft ? "left" : "right"]: "0",
+        width: "40%",
+        height: "70%",
+        opacity: 0.55,
+        transform: isLeft ? "none" : "scaleX(-1)",
+      }}
+      viewBox="0 0 600 700"
+      preserveAspectRatio="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient id={`wave-grad-su-${side}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.5" />
+          <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#a855f7" stopOpacity="0.5" />
+        </linearGradient>
+      </defs>
+      {Array.from({ length: 5 }).map((_, rowIdx) => {
+        const baseY = 200 + rowIdx * 60;
+        const dots = Array.from({ length: 50 }).map((_, i) => {
+          const x = i * 12;
+          const y =
+            baseY +
+            Math.sin((i / 50) * Math.PI * 2 + rowIdx * 0.5) * 70 +
+            Math.cos((i / 50) * Math.PI * 1.5) * 30;
+          const r = 1 + (rowIdx % 3) * 0.4;
+          return (
+            <circle
+              key={`${rowIdx}-${i}`}
+              cx={x}
+              cy={y}
+              r={r}
+              fill={`url(#wave-grad-su-${side})`}
+            />
+          );
+        });
+        return <g key={rowIdx}>{dots}</g>;
+      })}
+    </svg>
   );
 };
 

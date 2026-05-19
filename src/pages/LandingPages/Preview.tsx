@@ -1,253 +1,418 @@
-import { Check, Sparkles } from "lucide-react";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
-import dashboardImg from "@/Images/ChatGPT Image Nov 13, 2025, 02_02_42 PM.png"
+import {
+  Sparkles,
+  TrendingUp,
+  QrCode,
+  Users,
+  MessageCircle,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import React from "react";
+
+gsap.registerPlugin(ScrollTrigger);
+
+const dashboardImg = "/PreviewSectionPage/dashboardImg.png";
+
+interface FeatureItemProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+const FeatureItem: React.FC<FeatureItemProps> = ({
+  icon,
+  title,
+  description,
+}) => {
+  return (
+    <div
+      data-feature-item
+      className="flex items-start gap-4 p-4 rounded-2xl group cursor-pointer transition-transform hover:translate-x-1"
+      style={{
+        background: "rgba(8,12,28,0.4)",
+        border: "1px solid rgba(96,165,250,0.15)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+      }}
+    >
+      <div
+        className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center relative"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(34,211,238,0.18) 0%, rgba(59,130,246,0.10) 100%)",
+          border: "1px solid rgba(96,165,250,0.35)",
+          boxShadow:
+            "0 0 18px rgba(59,130,246,0.25), inset 0 0 10px rgba(34,211,238,0.08)",
+        }}
+      >
+        {icon}
+      </div>
+
+      <div className="flex-1 min-w-0 pt-0.5">
+        <h4 className="hero-font text-[15px] sm:text-base font-bold text-white leading-tight mb-1.5">
+          {title}
+        </h4>
+        <p
+          className="body-font text-[13px] sm:text-sm leading-relaxed"
+          style={{ color: "rgba(255,255,255,0.5)" }}
+        >
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const PreviewSection = () => {
-  const sectionRef = useRef(null);
-  const headerRef = useRef(null);
-  const imageRef = useRef(null);
-  const contentRef = useRef(null);
-  
-  const isSectionInView = useInView(sectionRef, { once: true, margin: "-100px" });
-  const isHeaderInView = useInView(headerRef, { once: true, margin: "-50px" });
-  const isImageInView = useInView(imageRef, { once: true, margin: "-100px", amount: 0.3 });
-  const isContentInView = useInView(contentRef, { once: true, margin: "-100px", amount: 0.3 });
+  const sectionRef = useRef<HTMLElement>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = dashboardImg;
+    img.onload = () => setImgLoaded(true);
+    if (img.complete) setImgLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sectionRef.current || !imgLoaded) return;
+
+    const ctx = gsap.context(() => {
+      const headerEls = sectionRef.current!.querySelectorAll<HTMLElement>(
+        "[data-header-fade]"
+      );
+      const leftImg =
+        sectionRef.current!.querySelector<HTMLElement>("[data-left-img]");
+      const rightTexts = sectionRef.current!.querySelectorAll<HTMLElement>(
+        "[data-right-fade]"
+      );
+      const featureItems = sectionRef.current!.querySelectorAll<HTMLElement>(
+        "[data-feature-item]"
+      );
+
+      gsap.set(headerEls, { opacity: 0, y: 28 });
+      if (leftImg) gsap.set(leftImg, { opacity: 0, x: -50 });
+      gsap.set(rightTexts, { opacity: 0, x: 40 });
+      gsap.set(featureItems, { opacity: 0, x: 30 });
+
+      gsap.to(headerEls, {
+        opacity: 1,
+        y: 0,
+        duration: 0.7,
+        stagger: 0.12,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      if (leftImg) {
+        gsap.to(leftImg, {
+          opacity: 1,
+          x: 0,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: leftImg,
+            start: "top 85%",
+            toggleActions: "play none none reverse",
+          },
+        });
+      }
+
+      gsap.to(rightTexts, {
+        opacity: 1,
+        x: 0,
+        duration: 0.7,
+        stagger: 0.12,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: rightTexts[0],
+          start: "top 85%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      gsap.to(featureItems, {
+        opacity: 1,
+        x: 0,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: featureItems[0],
+          start: "top 88%",
+          toggleActions: "play none none reverse",
+        },
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [imgLoaded]);
 
   const features = [
-    "Real-time analytics and insights",
-    "One-click QR code generation",
-    "Seamless client management",
-    "Advanced conversation tracking"
+    {
+      icon: (
+        <TrendingUp
+          className="w-5 h-5"
+          style={{ color: "#60a5fa" }}
+          strokeWidth={2.2}
+        />
+      ),
+      title: "Real-time analytics and insights",
+      description: "Get detailed insights and make data-driven decisions.",
+    },
+    {
+      icon: (
+        <QrCode
+          className="w-5 h-5"
+          style={{ color: "#60a5fa" }}
+          strokeWidth={2.2}
+        />
+      ),
+      title: "One-click QR code generation",
+      description: "Generate unique QR codes instantly.",
+    },
+    {
+      icon: (
+        <Users
+          className="w-5 h-5"
+          style={{ color: "#60a5fa" }}
+          strokeWidth={2.2}
+        />
+      ),
+      title: "Seamless client management",
+      description: "Organize and manage all your clients in one place.",
+    },
+    {
+      icon: (
+        <MessageCircle
+          className="w-5 h-5"
+          style={{ color: "#60a5fa" }}
+          strokeWidth={2.2}
+        />
+      ),
+      title: "Advanced conversation tracking",
+      description: "Track every conversation and measure engagement.",
+    },
   ];
 
   return (
     <section
       ref={sectionRef}
-      className="relative py-20 overflow-hidden bg-[#0a1628]"
+      id="preview"
+      className="relative py-16 sm:py-20 lg:py-28 overflow-hidden"
+      style={{ background: "#05050f" }}
     >
-      {/* Vignette Effect - Dark Corners */}
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/60" />
-      
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Large Glowing Orbs */}
-        <motion.div 
-          initial={{ scale: 0, opacity: 0 }}
-          animate={isSectionInView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute top-20 -left-40 w-[650px] h-[650px] bg-cyan-500/8 rounded-full blur-[140px]"
-        />
-        <motion.div 
-          initial={{ scale: 0, opacity: 0 }}
-          animate={isSectionInView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-          transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute bottom-20 -right-40 w-[700px] h-[700px] bg-blue-600/8 rounded-full blur-[150px]"
-        />
-        
-        {/* Grid Pattern */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={isSectionInView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.5, delay: 0.25 }}
-          className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.02)_1px,transparent_1px)] bg-[size:80px_80px]"
-        />
+      <style>{`
+        @keyframes prev-pulse { 0%,100%{opacity:0.25} 50%{opacity:1} }
+        @keyframes prev-glow {
+          0%,100% { transform: translate(0,0) scale(1); }
+          50% { transform: translate(-15px,10px) scale(1.05); }
+        }
+        @keyframes badge-glow {
+          0%,100% { box-shadow: 0 0 25px rgba(34,211,238,0.25), 0 0 0 1px rgba(96,165,250,0.4); }
+          50%     { box-shadow: 0 0 35px rgba(34,211,238,0.4),  0 0 0 1px rgba(96,165,250,0.55); }
+        }
+        @keyframes preview-img-glow {
+          0%,100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.06); opacity: 0.8; }
+        }
+        @keyframes prev-bounce-3d {
+          0%, 100% { transform: perspective(900px) translateY(0) rotateX(0deg) scale(1); }
+          50%      { transform: perspective(900px) translateY(-12px) rotateX(3deg) scale(1.02); }
+        }
+      `}</style>
 
-        {/* Floating Particles */}
-        {[...Array(18)].map((_, i) => (
-          <motion.div
+      <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute"
+          style={{
+            top: "10%",
+            left: "-15%",
+            width: "60%",
+            height: "70%",
+            background:
+              "radial-gradient(ellipse at center, rgba(59,130,246,0.15) 0%, rgba(99,102,241,0.08) 35%, transparent 65%)",
+            animation: "prev-glow 14s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute"
+          style={{
+            bottom: "-10%",
+            right: "-5%",
+            width: "55%",
+            height: "60%",
+            background:
+              "radial-gradient(ellipse at center, rgba(139,92,246,0.13) 0%, transparent 60%)",
+          }}
+        />
+      </div>
+
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 60 }).map((_, i) => (
+          <div
             key={i}
-            initial={{ opacity: 0, y: 0 }}
-            animate={isSectionInView ? { opacity: [0, 0.4, 0], y: [-100, -800] } : {}}
-            transition={{
-              duration: 15 + Math.random() * 10,
-              repeat: Infinity,
-              delay: Math.random() * 5,
-              ease: "linear",
-            }}
-            className="absolute w-1 h-1 bg-cyan-400/30 rounded-full"
+            className="absolute rounded-full bg-white"
             style={{
+              width: `${Math.random() * 1.5 + 0.5}px`,
+              height: `${Math.random() * 1.5 + 0.5}px`,
               left: `${Math.random() * 100}%`,
-              top: "100%",
+              top: `${Math.random() * 100}%`,
+              opacity: Math.random() * 0.5 + 0.1,
+              animation: `prev-pulse ${
+                3 + Math.random() * 4
+              }s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`,
             }}
           />
         ))}
       </div>
 
-      <div className="container mx-auto px-6 lg:px-8 relative z-10">
-        {/* Section Header */}
-        <motion.div
-          ref={headerRef}
-          initial={{ opacity: 0, y: 40 }}
-          animate={isHeaderInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center mb-24"
-        >
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={isHeaderInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.3, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-cyan-500/10 border border-cyan-500/20 mb-8 backdrop-blur-sm"
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-10 sm:mb-14 lg:mb-20 max-w-4xl mx-auto">
+          <div
+            data-header-fade
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full body-font mb-6"
+            style={{
+              background: "rgba(8,12,28,0.6)",
+              animation: "badge-glow 3s ease-in-out infinite",
+            }}
           >
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-medium text-cyan-400 tracking-wide">PREVIEW</span>
-          </motion.div>
-          
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            animate={isHeaderInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.4, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold mb-8 text-white leading-[1.1] tracking-tight"
+            <Sparkles
+              className="w-3.5 h-3.5"
+              style={{ color: "#22d3ee" }}
+              fill="#22d3ee"
+              strokeWidth={0}
+            />
+            <span
+              className="text-[14px] font-semibold tracking-wide"
+              style={{
+                background: "linear-gradient(90deg, #22d3ee 0%, #60a5fa 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Experience Seamless
+            </span>
+          </div>
+
+          <h2
+            data-header-fade
+            className="hero-font font-extrabold leading-[1.02] tracking-tight"
+            style={{ fontSize: "clamp(2.25rem,6.5vw,4.7rem)" }}
           >
-            See It In{" "}
-            <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent">
+            <span className="text-white font-syne-bold">See It In </span>
+            <span className="font-syne-bold"
+              style={{
+                background:
+                  "linear-gradient(90deg, #22d3ee 0%, #3b82f6 50%, #a855f7 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                paddingBottom: "0.1em",
+                display: "inline-block",
+              }}
+            >
               Action
             </span>
-          </motion.h2>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={isHeaderInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-            transition={{ duration: 0.3, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-light"
+          </h2>
+
+          <p
+            data-header-fade
+            className="body-font text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mt-4"
+            style={{ color: "rgba(255,255,255,0.55)" }}
           >
             Experience the seamless interface designed for modern professionals
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
-        {/* Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-16 items-center max-w-7xl mx-auto">
-          {/* Image Side */}
-          <motion.div
-            ref={imageRef}
-            initial={{ opacity: 0, x: -50, scale: 0.95 }}
-            animate={isImageInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: -50, scale: 0.95 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative group"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 max-w-[1300px] mx-auto items-center">
+          {/* LEFT — Dashboard image */}
+          <div
+            data-left-img
+            className="relative max-w-3xl mx-auto lg:max-w-none"
           >
-            {/* Glow Effect */}
-            <motion.div
-              animate={isImageInView ? { 
-                scale: [1, 1.05, 1],
-                opacity: [0.3, 0.5, 0.3]
-              } : {}}
-              transition={{ 
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                top: "10%",
+                left: "5%",
+                right: "5%",
+                bottom: "10%",
+                background:
+                  "radial-gradient(ellipse at center, rgba(59,130,246,0.35) 0%, rgba(139,92,246,0.2) 40%, transparent 70%)",
+                filter: "blur(60px)",
+                animation: "preview-img-glow 4s ease-in-out infinite",
               }}
-              className="absolute -inset-8 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-[4rem] blur-3xl"
             />
-            
-            {/* Image Container */}
-            <div className="relative rounded-[2.5rem] overflow-hidden border border-cyan-500/20 group-hover:border-cyan-500/40 transition-all duration-500 shadow-2xl shadow-cyan-500/10">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
+
+            {imgLoaded && (
+              <div
+                className="relative"
+                style={{ animation: "prev-bounce-3d 4s ease-in-out infinite" }}
               >
-                <img 
-                  src={dashboardImg} 
-                  alt="Dashboard Preview" 
-                  className="w-full h-auto"
+                <img
+                  src={dashboardImg}
+                  alt="Dashboard Preview"
+                  loading="eager"
+                  decoding="sync"
+                  draggable={false}
+                  className="w-full h-auto select-none"
+                  style={{
+                    pointerEvents: "none",
+                    filter: "drop-shadow(0 20px 50px rgba(59,130,246,0.3))",
+                  }}
                 />
-              </motion.div>
-              
-              {/* Overlay Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </div>
+              </div>
+            )}
+          </div>
 
-            {/* Decorative Elements */}
-            <motion.div
-              animate={isImageInView ? { rotate: 360 } : {}}
-              transition={{ 
-                duration: 20,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              className="absolute -top-4 -right-4 w-24 h-24 border border-cyan-500/20 rounded-full"
-            />
-            <motion.div
-              animate={isImageInView ? { rotate: -360 } : {}}
-              transition={{ 
-                duration: 25,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              className="absolute -bottom-6 -left-6 w-32 h-32 border border-blue-500/20 rounded-full"
-            />
-          </motion.div>
-
-          {/* Text Content Side */}
-          <motion.div
-            ref={contentRef}
-            initial={{ opacity: 0, x: 50 }}
-            animate={isContentInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-8"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={isContentInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <h3 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+          {/* RIGHT — Heading + features */}
+          <div className="relative flex flex-col max-w-2xl mx-auto lg:max-w-none">
+            <div data-right-fade className="mb-5">
+              <h3
+                className="hero-font font-syne-bold font-extrabold text-white leading-tight tracking-tight mb-3"
+                style={{ fontSize: "clamp(1.75rem,3.2vw,2.75rem)" }}
+              >
                 Intuitive Dashboard
               </h3>
-              <p className="text-xl text-slate-400 leading-relaxed font-light">
-                Manage all your digital twins from one beautiful interface. Track conversations, 
-                generate QR codes, and monitor engagement with ease.
-              </p>
-            </motion.div>
-
-            {/* Features List */}
-            <div className="space-y-5">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={isContentInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
-                  transition={{ 
-                    duration: 0.3, 
-                    delay: 0.15 + index * 0.05,
-                    ease: [0.22, 1, 0.36, 1]
-                  }}
-                  className="flex items-start gap-4 group/item"
-                >
-                  {/* Check Icon */}
-                  <motion.div 
-                    whileHover={{ scale: 1.1, rotate: 360 }}
-                    transition={{ duration: 0.4 }}
-                    className="relative flex-shrink-0 mt-1"
-                  >
-                    <motion.div
-                      animate={isContentInView ? { 
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.6, 0.3]
-                      } : {}}
-                      transition={{ 
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: index * 0.2
-                      }}
-                      className="absolute inset-0 bg-cyan-400/40 rounded-full blur-md"
-                    />
-                    <div className="relative w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center group-hover/item:border-cyan-400/60 transition-all duration-300">
-                      <Check className="w-4 h-4 text-cyan-400 group-hover/item:text-cyan-300 transition-colors" strokeWidth={2.5} />
-                    </div>
-                  </motion.div>
-                  
-                  <span className="text-lg text-slate-300 group-hover/item:text-white transition-colors duration-300">
-                    {feature}
-                  </span>
-                </motion.div>
-              ))}
+              <div
+                className="h-[3px] w-24 rounded-full"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #22d3ee, #3b82f6, #a855f7)",
+                  boxShadow: "0 0 12px rgba(59,130,246,0.5)",
+                }}
+              />
             </div>
 
-           
-        
-          </motion.div>
+            <p
+              data-right-fade
+              className="body-font text-base leading-relaxed mb-7"
+              style={{ color: "rgba(255,255,255,0.6)" }}
+            >
+              Manage all your digital twins from one beautiful interface. Track
+              conversations, generate QR codes, and monitor engagement with
+              ease.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {features.map((feature) => (
+                <FeatureItem
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
