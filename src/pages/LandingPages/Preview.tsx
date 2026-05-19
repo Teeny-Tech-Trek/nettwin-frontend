@@ -12,7 +12,7 @@ import React from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const dashboardImg = "/PreviewSectionPage/dashboardImg.png";
+// const dashboardImg = "/PreviewSectionPage/dashboardImg.png";
 
 interface FeatureItemProps {
   icon: React.ReactNode;
@@ -70,7 +70,7 @@ const PreviewSection = () => {
 
   useEffect(() => {
     const img = new Image();
-    img.src = dashboardImg;
+    img.src = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/PreviewSectionPage/dashboardImg.png";
     img.onload = () => setImgLoaded(true);
     if (img.complete) setImgLoaded(true);
   }, []);
@@ -358,7 +358,7 @@ const PreviewSection = () => {
                 style={{ animation: "prev-bounce-3d 4s ease-in-out infinite" }}
               >
                 <img
-                  src={dashboardImg}
+                  src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/PreviewSectionPage/dashboardImg.png"
                   alt="Dashboard Preview"
                   loading="eager"
                   decoding="sync"

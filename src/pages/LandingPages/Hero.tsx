@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import React from "react";
 
-const HeroImg = "/HeroPage/HeroRightSideImage.png";
+// const HeroImg = "/HeroPage/HeroRightSideImage.png";
 
 // ─────────────────────────────────────────────
 // Ring component
@@ -238,7 +238,7 @@ const HeroSection = () => {
 
   useEffect(() => {
     const img = new Image();
-    img.src = HeroImg;
+    img.src = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeroRightSideImage.png";
     img.onload = () => setImgLoaded(true);
     if (img.complete) setImgLoaded(true);
   }, []);
@@ -413,7 +413,7 @@ const HeroSection = () => {
 
               {/* Hero image */}
               {imgLoaded && (
-                <motion.img src={HeroImg} alt="AI Digital Twin"
+                <motion.img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeroRightSideImage.png" alt="AI Digital Twin"
                   loading="eager" decoding="sync" draggable={false}
                   onContextMenu={(e) => e.preventDefault()}
                   className="relative z-[10] w-full h-auto select-none pointer-events-none"

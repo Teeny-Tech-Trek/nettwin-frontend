@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import demoVideo from "../../Images/Orion_ Digital Twin.mp4";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -234,7 +233,7 @@ const VideoDemo = () => {
                     loop
                     playsInline
                     preload="auto"
-                    src={demoVideo}
+                    src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/Orion_%20Digital%20Twin.mp4"
                   >
                     Your browser does not support the video tag.
                   </video>

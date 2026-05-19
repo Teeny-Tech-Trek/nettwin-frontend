@@ -5,7 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ctaImg = "/CtaPage/ctaImg.png";
+const ctaImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/ctaImg.png";
 
 const CTASection = () => {
   const sectionRef = useRef<HTMLElement>(null);

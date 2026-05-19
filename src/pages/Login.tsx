@@ -1,4 +1,4 @@
-const CityIllustration = "/LoginImage2.png";
+const CityIllustration = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/LoginImage2.png";
 
 import {
   Mail, Lock, Eye, EyeOff, Loader2, Sparkles,
