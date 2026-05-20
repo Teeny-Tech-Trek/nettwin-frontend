@@ -86,9 +86,17 @@ export const digitalTwinService = {
     return response.data;
   },
 
-  // Get user's digital twin
+  // Get user's digital twin (legacy single-twin getter — returns most-recent).
+  // For multi-twin UI, prefer `list()` below.
   get: async () => {
     const response = await axiosInstance.get('/digital-twin/get');
+    return response.data;
+  },
+
+  // List ALL twins owned by the user (multi-twin). Returns `{ success, data: Twin[], count }`.
+  // Empty array (not 404) when the user has none.
+  list: async () => {
+    const response = await axiosInstance.get('/digital-twin/list');
     return response.data;
   },
 
@@ -104,9 +112,13 @@ export const digitalTwinService = {
     return response.data;
   },
 
-  // Delete digital twin
-  delete: async () => {
-    const response = await axiosInstance.delete('/digital-twin/delete');
+  // Delete digital twin. Pass a `twinId` to delete a specific one (multi-
+  // twin accounts); omit to delete the user's most-recent twin (legacy).
+  delete: async (twinId?: string) => {
+    const url = twinId
+      ? `/digital-twin/delete/${twinId}`
+      : '/digital-twin/delete';
+    const response = await axiosInstance.delete(url);
     return response.data;
   },
 };

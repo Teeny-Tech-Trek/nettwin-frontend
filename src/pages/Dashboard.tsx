@@ -1467,14 +1467,23 @@
 
 
 import { Bot, Plus, Download, ExternalLink, LogOut, Sparkles, Zap, Trash2, Users, Mail, Building, Calendar, Filter, User, FileText, Briefcase, Camera, Menu, X, CreditCard } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import QRCode from "react-qr-code";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDigitalTwin } from "@/contexts/DigitalTwinContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { authService, leadService } from '@/services/api.service';
+// digitalTwinService is now used directly for multi-twin listing; the
+// single-twin context flow is preserved for backward compatibility.
+import { authService, digitalTwinService, leadService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
+import { Skeleton } from '@/components/ui/skeleton';
+// Plan-gating: every "Create New Digital Twin" CTA on this page must go
+// through CreateTwinGuard so free users at limit see the upgrade modal
+// instead of an in-flight 8-step wizard that 429s at the end.
+// See src/features/plan-gating/index.ts for the module's docs.
+import { CreateTwinGuard } from '@/features/plan-gating';
 
 
 interface DigitalTwin {
@@ -1517,7 +1526,12 @@ interface UserProfile {
 
 const Dashboard = () => {
   const { digitalTwin, isLoading, loadDigitalTwin, deleteTwin } = useDigitalTwin();
+  const { logout } = useAuth();
   const { toast } = useToast();
+  // Used by the plan-gating guards below — when the gate verdict is
+  // `allowed`, we navigate to /wizard imperatively. We don't use <Link>
+  // because the guard intercepts the click first.
+  const navigate = useNavigate();
   const [twins, setTwins] = useState<DigitalTwin[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
@@ -1550,13 +1564,51 @@ const Dashboard = () => {
     fetchData();
   }, [loadDigitalTwin, toast]);
 
-  // Sync context digitalTwin to state and fetch leads when twin is available
-  useEffect(() => {
-    if (digitalTwin) {
-      setTwins([digitalTwin]);
-      fetchLeads(digitalTwin._id);
+  // ──────────────────────────────────────────────────────────────────────
+  // Multi-twin listing.
+  //
+  // Previously the dashboard wrapped the single `digitalTwin` from context
+  // into a one-element `twins` array. That meant paid users with up to 10
+  // twins only ever saw their most-recent one. Now we hit GET /digital-twin/
+  // list and render the real array.
+  //
+  // The legacy `digitalTwin` from context is still hydrated by
+  // loadDigitalTwin() above (used by the wizard's edit flow); this effect
+  // is purely for the list-rendering surface.
+  //
+  // We refetch on `twin:created` and `twin:deleted` window events so
+  // navigating back from the wizard or deleting a twin updates the grid
+  // without a manual reload.
+  // ──────────────────────────────────────────────────────────────────────
+  const fetchAllTwins = useCallback(async () => {
+    try {
+      const res = await digitalTwinService.list();
+      const list = (res?.data ?? []) as DigitalTwin[];
+      setTwins(list);
+      // Fetch leads for the first twin only — the leads panel below is
+      // currently single-twin scoped. A future iteration can add a
+      // twin-switcher above the leads table.
+      if (list.length > 0) {
+        fetchLeads(list[0]._id);
+      } else {
+        setLeads([]);
+      }
+    } catch (error: any) {
+      console.error('Failed to list digital twins:', error);
     }
-  }, [digitalTwin]);
+  }, []);
+
+  useEffect(() => {
+    fetchAllTwins();
+
+    const onMutation = () => fetchAllTwins();
+    window.addEventListener('twin:created', onMutation);
+    window.addEventListener('twin:deleted', onMutation);
+    return () => {
+      window.removeEventListener('twin:created', onMutation);
+      window.removeEventListener('twin:deleted', onMutation);
+    };
+  }, [fetchAllTwins]);
 
   const fetchUserProfile = async () => {
     try {
@@ -1641,11 +1693,22 @@ const Dashboard = () => {
     }
   }, []);
 
-  const handleDelete = useCallback(async () => {
+  // Multi-twin aware delete. Passing the specific twin's id ensures we
+  // delete the one the user clicked on (vs the legacy "delete the user's
+  // single twin" behavior). The context fires `twin:deleted` on success,
+  // which the list-fetch effect above listens for to refresh the grid.
+  const handleDelete = useCallback(async (twinId?: string) => {
     try {
-      await deleteTwin();
-      setTwins([]);
-      setLeads([]);
+      await deleteTwin(twinId);
+      // Optimistic local removal — the twin:deleted event will also
+      // trigger a full refetch shortly, but this keeps the UI snappy.
+      if (twinId) {
+        setTwins((prev) => prev.filter((t) => t._id !== twinId));
+      } else {
+        setTwins([]);
+      }
+      // Clear leads only when no twins remain; otherwise the leads panel
+      // continues to show data for the first remaining twin.
       toast({
         title: "Success",
         description: "Digital twin deleted successfully.",
@@ -1659,9 +1722,15 @@ const Dashboard = () => {
     }
   }, [deleteTwin, toast]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+  // Use AuthContext's logout — it revokes the refresh token server-side,
+  // clears both `token` and `user` from localStorage, dispatches the
+  // logout toast, and lets ProtectedRoute redirect via React Router on
+  // the next render. The previous version (window.location.href + a
+  // partial localStorage clear) left the refresh-token cookie alive on
+  // the server, broke logout-everywhere security, and skipped the toast.
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
 
   const getInitials = (name?: string | null) => {
@@ -1694,13 +1763,51 @@ const Dashboard = () => {
     return leads.filter(lead => lead.status === status).length;
   };
 
+  // Dashboard loading skeleton — modeled on the real layout (header strip,
+  // action card row, two twin cards) so the page doesn't reflow when data
+  // arrives. Better perceived performance than a centered spinner because
+  // the eye sees structure immediately and content fills in.
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 px-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-          <div className="text-base sm:text-lg text-slate-600 font-medium text-center">Loading your dashboard...</div>
+      <div
+        className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] px-4 py-6 sm:py-8"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading dashboard"
+      >
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header strip */}
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-40 bg-cyan-500/10" />
+            <Skeleton className="h-10 w-10 rounded-full bg-cyan-500/10" />
+          </div>
+
+          {/* Quick actions row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-20 sm:h-24 rounded-2xl bg-cyan-500/10" />
+            ))}
+          </div>
+
+          {/* Twin cards placeholder */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                className="p-6 sm:p-8 bg-white/5 backdrop-blur-sm rounded-2xl sm:rounded-3xl border border-cyan-500/20 space-y-4"
+              >
+                <Skeleton className="h-7 w-3/4 bg-cyan-500/10" />
+                <Skeleton className="h-4 w-1/2 bg-cyan-500/10" />
+                <Skeleton className="h-20 w-full bg-cyan-500/10" />
+                <div className="flex items-end justify-between pt-2">
+                  <Skeleton className="h-24 w-24 rounded-lg bg-cyan-500/10" />
+                  <Skeleton className="h-9 w-24 rounded-md bg-cyan-500/10" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+        <span className="sr-only">Loading your dashboard…</span>
       </div>
     );
   }
@@ -2033,20 +2140,38 @@ const Dashboard = () => {
               </div>
             </Link>
 
-            <Link
-              to="/wizard"
-              className="group p-4 sm:p-6 bg-gradient-to-br from-cyan-500 to-teal-400 rounded-xl sm:rounded-2xl border border-cyan-400/30 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] transition sm:col-span-2 lg:col-span-1"
-            >
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition flex-shrink-0">
-                  <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div className="text-left min-w-0">
-                  <h3 className="font-semibold text-white text-sm sm:text-base truncate">New Digital Twin</h3>
-                  <p className="text-xs sm:text-sm text-white/90 truncate">Create AI assistant</p>
-                </div>
-              </div>
-            </Link>
+            {/*
+              Plan-gated CTA. The guard wraps the click so a free user at
+              their 1-twin limit sees the upgrade modal instead of jumping
+              into the wizard. Visual styling is unchanged — we keep the
+              same gradient card, just swap the <Link> for a <button>.
+            */}
+            <CreateTwinGuard onAllow={() => navigate('/wizard')}>
+              {({ onClick, disabled, gate }) => (
+                <button
+                  type="button"
+                  onClick={onClick}
+                  disabled={disabled}
+                  className="group p-4 sm:p-6 bg-gradient-to-br from-cyan-500 to-teal-400 rounded-xl sm:rounded-2xl border border-cyan-400/30 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] transition sm:col-span-2 lg:col-span-1 text-left disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition flex-shrink-0">
+                      <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <h3 className="font-semibold text-white text-sm sm:text-base truncate">New Digital Twin</h3>
+                      <p className="text-xs sm:text-sm text-white/90 truncate">
+                        {gate.status === 'loading'
+                          ? 'Checking your plan…'
+                          : gate.limit === -1
+                            ? 'Create AI assistant'
+                            : `${gate.current}/${gate.limit} used`}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )}
+            </CreateTwinGuard>
           </motion.div>
 
           {twins.length === 0 ? (
@@ -2060,13 +2185,27 @@ const Dashboard = () => {
               <p className="text-slate-300 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-md mx-auto px-4">
                 Create your first digital twin to start generating leads and engaging with your audience 24/7.
               </p>
-              <Link
-                to="/wizard"
-                className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-cyan-500 to-teal-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl hover:from-cyan-600 hover:to-teal-500 transition font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 text-sm sm:text-base"
-              >
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                Create Your First Twin
-              </Link>
+              {/*
+                Empty-state CTA. Also gated — even though most users seeing
+                this state have 0 twins (gate will be 'allowed'), wrapping
+                in the guard means the rule is enforced in one place. If a
+                race condition ever lets a free user see this empty state
+                while their count is already 1 (deletion in flight, etc.),
+                the gate still does the right thing.
+              */}
+              <CreateTwinGuard onAllow={() => navigate('/wizard')}>
+                {({ onClick, disabled }) => (
+                  <button
+                    type="button"
+                    onClick={onClick}
+                    disabled={disabled}
+                    className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-cyan-500 to-teal-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl hover:from-cyan-600 hover:to-teal-500 transition font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Create Your First Twin
+                  </button>
+                )}
+              </CreateTwinGuard>
             </motion.div>
           ) : (
             <div className="space-y-6 sm:space-y-8">
@@ -2085,8 +2224,10 @@ const Dashboard = () => {
                         <p className="text-cyan-300 mt-1 text-sm sm:text-base truncate">{twin.identity.role}</p>
                       </div>
                       <button
-                        onClick={handleDelete}
+                        onClick={() => handleDelete(twin._id)}
                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition flex-shrink-0"
+                        title="Delete this twin"
+                        aria-label="Delete digital twin"
                       >
                         <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>

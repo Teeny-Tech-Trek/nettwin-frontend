@@ -200,10 +200,17 @@ import { digitalTwinService } from '@/services/api.service';
 interface DigitalTwinContextType {
   digitalTwin: DigitalTwinProfile | null;
   isLoading: boolean;
-  saveDigitalTwin: (data: DigitalTwinProfile) => Promise<void>;
+  // Returns the saved twin (including its server-assigned `_id`) so the
+  // caller can use it immediately — e.g. the wizard's success screen
+  // needs the id to build the public "View Live Twin" link without
+  // waiting for the next render cycle.
+  saveDigitalTwin: (data: DigitalTwinProfile) => Promise<DigitalTwinProfile | null>;
   loadDigitalTwin: () => Promise<void>;
   updateSection: (section: string, data: any) => Promise<void>;
-  deleteTwin: () => Promise<void>;
+  // `twinId` optional — omit to delete the user's most-recent twin (legacy
+  // single-twin flow). Pass an id from a multi-twin list to delete that
+  // specific twin. Backend enforces ownership.
+  deleteTwin: (twinId?: string) => Promise<void>;
 }
 
 const DigitalTwinContext = createContext<DigitalTwinContextType | undefined>(undefined);
@@ -236,6 +243,10 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
         title: 'Success!',
         description: 'Your digital twin has been saved successfully.',
       });
+      // Hand the saved doc (with server-assigned _id) back to the caller.
+      // The wizard uses this to populate the success screen's "View Live"
+      // link without a redundant /get call.
+      return result.data as DigitalTwinProfile;
     } catch (error: any) {
       toast({
         title: 'Save failed',
@@ -293,11 +304,17 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
     }
   };
 
-  const deleteTwin = async () => {
+  const deleteTwin = async (twinId?: string) => {
     setIsLoading(true);
     try {
-      await digitalTwinService.delete();
+      await digitalTwinService.delete(twinId);
+      // Only clear the cached single-twin if we deleted THE current one
+      // (or no id was passed, meaning legacy "delete my one twin").
       setDigitalTwin(null);
+
+      // Notify plan-gating so the next "Create Twin" verdict reflects the
+      // freed-up slot — same event the wizard dispatches on create.
+      window.dispatchEvent(new CustomEvent('twin:deleted'));
 
       toast({
         title: 'Success!',

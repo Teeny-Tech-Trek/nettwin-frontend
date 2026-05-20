@@ -247,6 +247,13 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<void>;
   googleAuth: (idToken: string) => Promise<GoogleAuthResult>;
   logout: () => Promise<void>;
+  // True until the *first* session-restore attempt has fully completed.
+  // ProtectedRoute MUST gate on this — never on `user === null` alone —
+  // otherwise we redirect to /login during the in-flight /auth/profile
+  // call and create the "back-button logs me out" race.
+  isInitializing: boolean;
+  // True while a login/signup/google network request is in-flight.
+  // Separate from isInitializing so the route guard logic stays unambiguous.
   isLoading: boolean;
 }
 
@@ -271,7 +278,9 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Two distinct flags — see AuthContextType comments for the why.
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const persistSession = (accessToken: string, userData: User) => {
@@ -288,33 +297,110 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  const getProfile = async () => {
+  // Returns true if profile fetch succeeded, false if it failed (e.g. 401
+  // after refresh also failed → axios interceptor will have already
+  // dispatched 'auth:logout' which clears session).
+  const getProfile = async (): Promise<boolean> => {
     try {
       const res = await authService.getProfile();
       const userData = res.user ?? res;
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
+      return true;
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+      return false;
     }
   };
 
+  // ──────────────────────────────────────────────────────────────────────
+  // Session-restore effect.
+  //
+  // BUG WE FIXED: previously this hook called `getProfile()` without
+  // awaiting and then synchronously set isLoading=false. ProtectedRoute
+  // would observe (user=null, isLoading=false) for one render and
+  // immediately <Navigate to="/login" replace />, which is what made
+  // the browser back button look like a logout.
+  //
+  // NEW BEHAVIOR:
+  //   1. If there's no stored token → we're definitely logged out; flip
+  //      isInitializing off immediately, ProtectedRoute redirects cleanly.
+  //   2. If we have a token AND cached user data → hydrate from cache
+  //      synchronously so first paint is correct, then revalidate the
+  //      profile in the background. Stale cache is fine — the next
+  //      request that 401s will trigger silent refresh in axios.
+  //   3. If we have a token but no cached user → AWAIT the profile fetch
+  //      before flipping isInitializing. ProtectedRoute keeps showing
+  //      the skeleton during this window. No premature redirect.
+  // ──────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    let cancelled = false;
 
-    if (storedToken) {
-      setToken(storedToken);
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        getProfile();
+    const init = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (!storedToken) {
+        if (!cancelled) setIsInitializing(false);
+        return;
       }
-    }
-    setIsLoading(false);
+
+      setToken(storedToken);
+
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          // Corrupted cache — fall through to network revalidate.
+          localStorage.removeItem('user');
+        }
+        if (!cancelled) setIsInitializing(false);
+        // Background revalidate; failure here is handled by the axios
+        // interceptor (silent refresh, then auth:logout if that fails).
+        getProfile();
+        return;
+      }
+
+      // Token without cached user → must hit network before declaring init done.
+      await getProfile();
+      if (!cancelled) setIsInitializing(false);
+    };
+
+    init();
+
+    // Listen for axios interceptor's "session is dead" signal. We clear
+    // session state here (the single owner) but DO NOT call
+    // window.location.href — React Router + ProtectedRoute will redirect
+    // organically on the next render when `user` flips to null.
+    const onForcedLogout = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const wasLoggedIn = !!localStorage.getItem('token');
+      clearSession();
+      // Only show the toast for users who *were* logged in. Anonymous users
+      // hitting a 401 on a guarded endpoint shouldn't see a "Session expired"
+      // banner — that's confusing on first visit.
+      if (wasLoggedIn) {
+        toast({
+          title: 'Session expired',
+          description: 'Please sign in again to continue.',
+          variant: 'destructive',
+        });
+      }
+      if (import.meta.env.DEV) {
+        console.log('[auth] forced logout, reason:', detail?.reason);
+      }
+    };
+    window.addEventListener('auth:logout', onForcedLogout as EventListener);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('auth:logout', onForcedLogout as EventListener);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signup = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
     try {
       const data = await authService.signup(name, email, password);
       persistSession(data.accessToken, data.user);
@@ -330,10 +416,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         variant: 'destructive',
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
       const data = await authService.login(email, password);
       persistSession(data.accessToken, data.user);
@@ -349,6 +438,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         variant: 'destructive',
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -356,6 +447,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Services). The backend verifies the JWT against GOOGLE_CLIENT_ID — never
   // pass a client-decoded payload here.
   const googleAuth = async (idToken: string): Promise<GoogleAuthResult> => {
+    setIsLoading(true);
     try {
       const data = await authService.googleAuth(idToken);
       persistSession(data.accessToken, data.user);
@@ -373,6 +465,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         variant: 'destructive',
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -400,6 +494,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signup,
     googleAuth,
     logout,
+    isInitializing,
     isLoading,
   };
 

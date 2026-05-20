@@ -355,11 +355,17 @@ import { Step7Story } from "./wizard/steps/Step7Story";
 import { Step8Networking } from "./wizard/steps/Step8Networking";
 import { Step9Links } from "./wizard/steps/Step9Links";
 import { DigitalTwinProfile } from "@/types/digitalTwin";
-import { ChevronLeft, ChevronRight, Download, Sparkles, Loader2, Crown, Building2, User, ArrowLeft, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Loader2, User, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useDigitalTwin } from "@/contexts/DigitalTwinContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+// trackPlanGateEvent — used in handleComplete to fire `avatar_created`.
+// CreateTwinGuard now lives inside SuccessScreen, no longer needed here.
+import { trackPlanGateEvent } from "@/features/plan-gating";
+// Polished post-creation screen extracted from this file. Anything that
+// changes about the success UX should happen in SuccessScreen.tsx now —
+// the wizard only orchestrates the flow.
+import { SuccessScreen } from "./wizard/SuccessScreen";
 
 const INITIAL_DATA: DigitalTwinProfile = {
   identity: { name: "", role: "", tagline: "", bio: "" },
@@ -529,8 +535,12 @@ export const DigitalTwinWizard = () => {
   const [data, setData] = useState<DigitalTwinProfile>(INITIAL_DATA);
   const [showOutput, setShowOutput] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { saveDigitalTwin, digitalTwin, loadDigitalTwin, isLoading } = useDigitalTwin();
-  const { user } = useAuth();
+  // _id of the just-saved twin. Used so the success screen's "View Live
+  // Twin" CTA can link to /chatbot/:id. Without this, we'd have to refetch
+  // the twin list after creation just to find the id we already had in
+  // the create response.
+  const [savedTwinId, setSavedTwinId] = useState<string | undefined>(undefined);
+  const { saveDigitalTwin, digitalTwin, isLoading } = useDigitalTwin();
   const navigate = useNavigate();
 
   const totalSteps = 9;
@@ -566,9 +576,25 @@ export const DigitalTwinWizard = () => {
   const handleComplete = async () => {
     setIsSaving(true);
     try {
-      await saveDigitalTwin(data);
+      // saveDigitalTwin now returns the persisted twin (including _id) —
+      // we stash that id so the success screen can link to /chatbot/:id
+      // without an extra round-trip.
+      const saved = await saveDigitalTwin(data);
+      if (saved?._id) {
+        setSavedTwinId(saved._id);
+      }
       setShowOutput(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Analytics + cache invalidation. Firing `twin:created` causes any
+      // mounted usePlanGate hook (on Dashboard, on the success screen's
+      // "Create Another" guard) to re-fetch /billing/status so the next
+      // gate verdict reflects the now-incremented count.
+      trackPlanGateEvent('avatar_created', {
+        twinName: data.identity?.name,
+      });
+      window.dispatchEvent(new CustomEvent('twin:created'));
+
       toast.success("Digital Twin Profile Complete!", {
         description: "Your professional persona has been generated and saved.",
       });
@@ -579,49 +605,28 @@ export const DigitalTwinWizard = () => {
     }
   };
 
-  const downloadJSON = () => {
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `digital-twin-${data.identity.name.replace(/\s+/g, "-").toLowerCase()}.json`;
-    a.click();
-    toast.success("Profile Downloaded", { description: "JSON file saved successfully." });
-  };
-
-  const generatePersona = () => {
-    const persona = `You are the digital twin of ${data.identity.name}, ${data.identity.role}${
-      data.businesses[0]?.name ? ` at ${data.businesses[0].name}` : ""
-    }.
-
-${data.identity.bio}
-
-You understand their entire ecosystem including:
-${data.businesses.map((b) => `- ${b.name} (${b.role}): ${b.description}`).join("\n")}
-
-Personality: ${data.personality.traits.join(", ")} | ${data.personality.tone} tone
-Leadership: ${data.personality.leadership_style}
-Values: ${data.personality.values.join(", ")}
-
-Mission: ${data.story.mission}
-
-You represent them professionally in conversations, staying authentic, strategic, and human.`;
-
-    return persona;
-  };
+  // Note: downloadJSON and generatePersona used to live here. Both moved
+  // into SuccessScreen.tsx along with the rest of the post-creation UX.
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] flex items-center justify-center px-4">
+      <div
+        className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] flex items-center justify-center px-4"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading wizard"
+      >
         <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin mx-auto"></div>
+          {/* Centered spinner with icon center-stamped — kept this minimal
+              because the wizard load is fast (single twin fetch) and a full
+              skeleton of the form would be more distracting than the wait. */}
+          <div className="relative inline-block">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin"></div>
             <User className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
           </div>
           <div>
             <h3 className="font-semibold text-base sm:text-lg text-white mb-2">Loading Your Digital Twin</h3>
-            <p className="text-sm sm:text-base text-slate-300">Preparing your professional persona...</p>
+            <p className="text-sm sm:text-base text-slate-300">Preparing your professional persona…</p>
           </div>
         </div>
       </div>
@@ -629,82 +634,20 @@ You represent them professionally in conversations, staying authentic, strategic
   }
 
   if (showOutput) {
+    // Polished post-creation experience. All UX lives in SuccessScreen.tsx;
+    // this component only manages the "Create Another" reset action so we
+    // don't lose the wizard's local state ownership.
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] py-6 sm:py-8 lg:py-12 px-4">
-        <div className="max-w-7xl mx-auto mb-4 sm:mb-6">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-slate-300 hover:text-cyan-400 transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium text-sm sm:text-base">Back to Dashboard</span>
-          </button>
-        </div>
-
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-6 sm:mb-8 px-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-cyan-500 to-teal-400 rounded-full mb-3 sm:mb-4 shadow-lg shadow-cyan-500/30">
-              <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3">Digital Twin Complete</h1>
-            <p className="text-base sm:text-lg lg:text-xl text-slate-300 max-w-2xl mx-auto">
-              Your professional persona is ready to represent you in the digital world
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-            <Card className="p-4 sm:p-6 lg:p-8 shadow-lg border border-slate-200 bg-white backdrop-blur-sm rounded-2xl">
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-800 truncate">AI Persona Initialization</h2>
-                  <p className="text-xs sm:text-sm text-slate-600 truncate">Copy this prompt to initialize your AI assistant</p>
-                </div>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 sm:p-4 lg:p-6 rounded-xl font-mono text-xs sm:text-sm whitespace-pre-wrap max-h-64 sm:max-h-80 lg:max-h-96 overflow-y-auto text-slate-700">
-                {generatePersona()}
-              </div>
-            </Card>
-
-            <Card className="p-4 sm:p-6 lg:p-8 shadow-lg border border-slate-200 bg-white backdrop-blur-sm rounded-2xl">
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-800 truncate">Complete Profile Data</h2>
-                  <p className="text-xs sm:text-sm text-slate-600 truncate">Full JSON structure for integration</p>
-                </div>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 sm:p-4 lg:p-6 rounded-xl overflow-auto max-h-64 sm:max-h-80 lg:max-h-96">
-                <pre className="text-xs text-slate-700 break-words whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
-              </div>
-            </Card>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-8 px-4">
-            <Button 
-              onClick={downloadJSON} 
-              className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base font-semibold bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
-            >
-              <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
-              Download JSON Profile
-            </Button>
-            <Button
-              onClick={() => {
-                setShowOutput(false);
-                setCurrentStep(0);
-              }}
-              variant="outline"
-              className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base font-semibold border-2 border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors duration-200"
-            >
-              Create Another Twin
-            </Button>
-          </div>
-        </div>
-      </div>
+      <SuccessScreen
+        data={data}
+        twinId={savedTwinId}
+        onCreateAnother={() => {
+          setShowOutput(false);
+          setSavedTwinId(undefined);
+          setCurrentStep(0);
+          setData(INITIAL_DATA);
+        }}
+      />
     );
   }
 

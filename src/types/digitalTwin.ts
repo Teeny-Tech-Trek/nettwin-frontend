@@ -70,4 +70,14 @@ export interface DigitalTwinProfile {
   story: Story;
   networking: Networking;
   links: Links;
+
+  // Server-assigned fields. Present on every response from
+  // /api/digital-twin/{get,list,create}; absent on the in-memory form
+  // state inside the wizard before save. Marked optional so a freshly
+  // initialized INITIAL_DATA satisfies the type.
+  _id?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  lastUpdated?: string;
+  updatedAt?: string;
 }
