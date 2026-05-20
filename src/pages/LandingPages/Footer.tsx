@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Sparkles } from "lucide-react";
-import logoImg from "@/Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png";
 
 const footerLinks = [
   { name: "Home", href: "#home" },
@@ -97,7 +96,7 @@ const AppFooter = () => {
                 }}
               >
                 <img
-                  src={logoImg}
+                  src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png"
                   alt="NetTwin"
                   className="w-full h-full object-cover"
                 />

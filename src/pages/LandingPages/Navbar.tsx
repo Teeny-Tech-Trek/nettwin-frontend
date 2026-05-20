@@ -1,5 +1,3 @@
-import logoImg from "@/Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png"
-
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
@@ -102,7 +100,7 @@ const Navbar = () => {
                   }}
                 >
                   {/* If using your own logo: */}
-                      <img src={logoImg} alt="NetTwin" className="w-full h-full object-cover rounded-full" />
+                      <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="NetTwin" className="w-full h-full object-cover rounded-full" />
                       {/* Otherwise the SVG below is a placeholder that matches the image. */}
                  
                   <TwinSilhouettes />

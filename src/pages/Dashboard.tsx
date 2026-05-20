@@ -1475,7 +1475,6 @@ import { useDigitalTwin } from "@/contexts/DigitalTwinContext";
 import { useToast } from "@/hooks/use-toast";
 import { authService, leadService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
-import logoImg from "@/Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png"
 
 
 interface DigitalTwin {
@@ -1767,7 +1766,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20 flex-shrink-0">
-                <img src={logoImg} alt="logo" className="w-full h-full object-contain" />
+                <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo" className="w-full h-full object-contain" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-base sm:text-xl font-bold text-white truncate">DigitalTwin</h1>

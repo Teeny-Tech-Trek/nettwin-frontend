@@ -757,7 +757,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { authService, digitalTwinService, chatService, leadService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
-import logoImg from "../Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png"
+
 
 interface Message {
   id: string;
@@ -1134,7 +1134,7 @@ useEffect(() => {
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center shadow-lg shadow-cyan-500/30 flex-shrink-0"
                 >
-                  <img src={logoImg} alt="logo" className="w-full h-full object-contain p-1" />
+                  <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo" className="w-full h-full object-contain p-1" />
                 </motion.div>
               )}
 
@@ -1197,7 +1197,7 @@ useEffect(() => {
                         />
                       ) : (
                         <div className="w-7 h-7 sm:w-8 sm:h-8 lg:w-12 lg:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                          <img src={logoImg} alt="logo" className="w-full h-full object-contain p-0.5 sm:p-1" />
+                          <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo" className="w-full h-full object-contain p-0.5 sm:p-1" />
                         </div>
                       )
                     ) : (

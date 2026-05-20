@@ -9,7 +9,6 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import logoImg from "@/Images/ChatGPT_Image_Nov_13__2025__08_06_06_PM-removebg-preview.png";
 
 /* ============================================================
    Left-side feature cards data
@@ -389,7 +388,7 @@ const Login = () => {
                     boxShadow:"0 0 24px rgba(139,92,246,0.45), inset 0 0 12px rgba(168,85,247,0.20)",
                   }}
                 >
-                  <img src={logoImg} alt="logo"
+                  <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo"
                     className="w-full h-full object-contain p-2"
                     draggable={false}/>
                 </div>
