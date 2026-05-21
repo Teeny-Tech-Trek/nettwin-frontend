@@ -397,7 +397,7 @@ const PreviewSection = () => {
               className="body-font text-base leading-relaxed mb-7"
               style={{ color: "rgba(255,255,255,0.6)" }}
             >
-              Manage all your digital twins from one beautiful interface. Track
+              Manage all your net twins from one beautiful interface. Track
               conversations, generate QR codes, and monitor engagement with
               ease.
             </p>

@@ -623,7 +623,7 @@ export const DigitalTwinWizard = () => {
             <User className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
           </div>
           <div>
-            <h3 className="font-semibold text-base sm:text-lg text-white mb-2">Loading Your Digital Twin</h3>
+            <h3 className="font-semibold text-base sm:text-lg text-white mb-2">Loading Your Net Twin</h3>
             <p className="text-sm sm:text-base text-slate-300">Preparing your professional persona…</p>
           </div>
         </div>

@@ -27,7 +27,13 @@ export interface DigitalTwin {
 export interface Lead {
   _id: string;
   name: string;
-  email: string;
+  // Backend Lead schema stores the visitor's email under `userEmail`
+  // (see digital_twin_backend/src/models/Lead.js). Older code paths and
+  // the chatbot form also accept `email`, so we keep both optional in
+  // the FE type and read whichever is populated. Don't drop either —
+  // doing so silently regresses existing leads.
+  email?: string;
+  userEmail?: string;
   phone: string;
   company: string;
   message: string;

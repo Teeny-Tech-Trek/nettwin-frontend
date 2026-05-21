@@ -6,14 +6,14 @@ import React from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const HeaderCubeImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/HeaderCubeImg.png";
-const HeaderHeadImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/HeaderHeadImg.png";
-const BrainImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/BrainImg.png";
-const QrImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/QrImg.png";
-const ClockImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/ClockImg.png";
-const ShieldImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/ShieldImg.png";
-const LightningImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/LightningImg.png";
-const GroupImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/FeaturePage/GroupImg.png";
+const HeaderCubeImg = "./FeaturePage/HeaderCubeImg.png";
+const HeaderHeadImg = "./FeaturePage/HeaderHeadImg.png";
+const BrainImg = "./FeaturePage/BrainImg.png";
+const QrImg = "./FeaturePage/QrImg.png";
+const ClockImg = "./FeaturePage/ClockImg.png";
+const ShieldImg = "./FeaturePage/ShieldImg.png";
+const LightningImg = "./FeaturePage/LightningImg.png";
+const GroupImg = "./FeaturePage/GroupImg.png";
 
 
 const ALL_IMAGES = [

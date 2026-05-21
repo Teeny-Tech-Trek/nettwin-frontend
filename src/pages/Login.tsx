@@ -184,7 +184,7 @@ const Login = () => {
               className="body-font text-sm leading-relaxed mt-4 max-w-md"
               style={{ color:"rgba(255,255,255,0.55)" }}
             >
-              Access your digital twin, visualize real-time data,
+              Access your net twin, visualize real-time data,
               and make smarter, data-driven decisions.
             </motion.p>
           </div>

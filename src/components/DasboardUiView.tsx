@@ -6,7 +6,7 @@
 // handlers the logic container (Dashboard.tsx) passes down via props.
 // ─────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
@@ -15,7 +15,7 @@ import {
   Menu, X, ChevronDown, ChevronRight, FileText, Briefcase, User, CreditCard,
   LogOut, Camera, Sparkles, Plus, ArrowRight, PlayCircle, Pencil, Trash2,
   ExternalLink, Download, Users, UserPlus, BadgeCheck, TrendingUp, Mail,
-  Phone, Calendar, Filter, Hexagon,
+  Phone, Calendar, Filter, Hexagon, Building2, MessageSquare,
 } from 'lucide-react';
 import type { DigitalTwin, Lead, UserProfile, StatusCounts } from '../types/Dashboard';
 
@@ -119,7 +119,7 @@ const DashboardHeader = (props: DashboardViewProps) => {
         alt={userProfile?.name ?? 'Profile'}
         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         style={{ width: size, height: size }}
-        className="rounded-full object-cover ring-2 ring-cyan-400/30 flex-shrink-0"
+        className="rounded-full object-cover flex-shrink-0"
       />
     ) : (
       <div
@@ -439,7 +439,7 @@ const TwinAvatar = ({ src, name }: { src: string | null; name: string }) =>
   src ? (
     <img src={src} alt={name}
       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white/10 flex-shrink-0" />
+      className="w-16 h-16 flex-shrink-0" />
   ) : (
     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
       {getInitials(name)}
@@ -460,7 +460,7 @@ const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, on
     >
       {/* Card header bar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05]">
-        <span className="text-[11px] font-bold tracking-[0.15em] text-slate-400/70 uppercase">Your Digital Twin</span>
+        <span className="text-[11px] font-bold tracking-[0.15em] text-slate-400/70 uppercase">Your Net Twin</span>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -589,8 +589,15 @@ const StatusSelect = ({ value, onChange }: { value: string; onChange: (v: string
   );
 };
 
-const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFilter, onLeadStatusChange }:
-  Pick<DashboardViewProps, 'filteredLeads' | 'isLoadingLeads' | 'activeFilter' | 'onSelectFilter' | 'onLeadStatusChange'>
+// Visitor leads come from the backend Lead schema where the field is
+// `userEmail`. Older code paths and the chatbot form also send `email`,
+// so we read whichever is present. Centralizing the lookup here avoids
+// the "email column is blank for new leads" regression we hit when the
+// FE table read `lead.email` directly.
+const getLeadEmail = (lead: Lead): string => lead.userEmail || lead.email || '—';
+
+const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFilter, onLeadStatusChange, onViewLead }:
+  Pick<DashboardViewProps, 'filteredLeads' | 'isLoadingLeads' | 'activeFilter' | 'onSelectFilter' | 'onLeadStatusChange'> & { onViewLead: (lead: Lead) => void }
 ) => (
   <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
     className="rounded-2xl overflow-hidden bg-[#0c1f33]/80 backdrop-blur-xl border border-white/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
@@ -603,7 +610,7 @@ const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFil
         </div>
         <div>
           <h2 className="text-[15px] font-bold text-white">Recent Leads</h2>
-          <p className="text-slate-500 text-xs mt-0.5">Track and manage leads captured by your Digital Twin.</p>
+          <p className="text-slate-500 text-xs mt-0.5">Track and manage leads captured by your Net Twin.</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -665,11 +672,15 @@ const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFil
                     <td className="px-4 py-4">
                       <StatusSelect value={lead.status} onChange={v => onLeadStatusChange(lead._id, v)} />
                     </td>
-                    <td className="px-4 py-4 text-sm text-slate-400/70 whitespace-nowrap">{lead.email}</td>
+                    <td className="px-4 py-4 text-sm text-slate-400/70 whitespace-nowrap">{getLeadEmail(lead)}</td>
                     <td className="px-4 py-4 text-sm text-slate-400/70 whitespace-nowrap">{lead.phone || '—'}</td>
                     <td className="px-4 py-4 text-sm text-slate-500/70 whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-4 pr-6 text-right">
-                      <button className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-400/80 hover:text-cyan-300 transition-colors whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => onViewLead(lead)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-400/80 hover:text-cyan-300 transition-colors whitespace-nowrap"
+                      >
                         View Details <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </td>
@@ -685,8 +696,22 @@ const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFil
           {filteredLeads.map((lead, idx) => {
             const s = getStatus(lead.status);
             return (
-              <motion.div key={lead._id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
-                className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+              <motion.div
+                key={lead._id}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                onClick={() => onViewLead(lead)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onViewLead(lead);
+                  }
+                }}
+                className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:bg-white/[0.04] hover:border-cyan-500/20 transition cursor-pointer"
+              >
                 <div className="flex items-start gap-3">
                   <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                     {getInitials(lead.name || 'Unknown')}
@@ -697,11 +722,12 @@ const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFil
                       <StatusSelect value={lead.status} onChange={v => onLeadStatusChange(lead._id, v)} />
                     </div>
                     <div className="space-y-1 text-xs text-slate-500">
-                      <div className="flex items-center gap-2 truncate"><Mail className="w-3 h-3 flex-shrink-0" /><span className="truncate">{lead.email}</span></div>
+                      <div className="flex items-center gap-2 truncate"><Mail className="w-3 h-3 flex-shrink-0" /><span className="truncate">{getLeadEmail(lead)}</span></div>
                       {lead.phone && <div className="flex items-center gap-2"><Phone className="w-3 h-3 flex-shrink-0" />{lead.phone}</div>}
                       <div className="flex items-center gap-2"><Calendar className="w-3 h-3 flex-shrink-0" />{new Date(lead.createdAt).toLocaleDateString()}</div>
                     </div>
                   </div>
+                  <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0 mt-1" />
                 </div>
               </motion.div>
             );
@@ -712,10 +738,156 @@ const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFil
   </motion.div>
 );
 
+// ─── Lead Details Modal ──────────────────────────────────────────────────
+// UI-only state: the modal-open/close + selected lead are view concerns
+// (no APIs, no global state) so we keep them here instead of leaking them
+// into Dashboard.tsx. The status dropdown inside still routes through
+// `onLeadStatusChange` so the real DB write goes through the container.
+const LeadDetailsModal = ({
+  lead,
+  onClose,
+  onLeadStatusChange,
+}: {
+  lead: Lead | null;
+  onClose: () => void;
+  onLeadStatusChange: (leadId: string, status: string) => void;
+}) => {
+  // ESC key closes the modal — matches the Dialog primitive UX users
+  // already see elsewhere in the app.
+  useEffect(() => {
+    if (!lead) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    // Lock body scroll while modal is open.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [lead, onClose]);
+
+  return (
+    <AnimatePresence>
+      {lead && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ duration: 0.18 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-[#0c1f33]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-white/[0.05]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${getStatus(lead.status).gradient} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                  {getInitials(lead.name || 'Unknown')}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-white font-semibold truncate">{lead.name}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Captured {new Date(lead.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <DetailRow icon={<Mail className="w-3.5 h-3.5" />} label="Email" value={getLeadEmail(lead)} />
+                <DetailRow icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={lead.phone || '—'} />
+                <DetailRow icon={<Building2 className="w-3.5 h-3.5" />} label="Company" value={lead.company || '—'} />
+                <DetailRow icon={<Sparkles className="w-3.5 h-3.5" />} label="Interest" value={lead.interest || '—'} />
+              </div>
+
+              {lead.message && (
+                <div>
+                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    <MessageSquare className="w-3.5 h-3.5" /> Message
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-sm text-slate-300 whitespace-pre-wrap break-words">
+                    {lead.message}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Status</div>
+                <StatusSelect
+                  value={lead.status}
+                  onChange={(v) => onLeadStatusChange(lead._id, v)}
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-white/[0.05] flex justify-end gap-2">
+              {getLeadEmail(lead) !== '—' && (
+                <a
+                  href={`mailto:${getLeadEmail(lead)}`}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-sm text-slate-200 border border-white/[0.06] transition"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Email
+                </a>
+              )}
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium transition"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const DetailRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="min-w-0">
+    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+      {icon} {label}
+    </div>
+    <div className="text-sm text-slate-200 break-words">{value}</div>
+  </div>
+);
+
 // ─── Main ─────────────────────────────────────────────────────────────────
 const DashboardView = (props: DashboardViewProps) => {
+  // Modal-open state for the lead details panel. View-local (no API call,
+  // no app state) so it lives here rather than in the logic container.
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
   if (props.isLoading) return <DashboardSkeleton />;
   const hasTwin = props.twins.length > 0;
+
+  // Keep the modal's `lead` in sync with the latest leads list. After the
+  // user changes the status inside the modal, the parent updates the
+  // `leads` array and we want the modal to reflect that new status
+  // without forcing a re-open.
+  const liveSelectedLead =
+    selectedLead && props.leads.find((l) => l._id === selectedLead._id)
+      ? props.leads.find((l) => l._id === selectedLead._id) ?? null
+      : selectedLead;
 
   return (
     <div className="relative min-h-screen">
@@ -728,6 +900,12 @@ const DashboardView = (props: DashboardViewProps) => {
         onFileSelect={props.onFileSelect}
         onChoosePhoto={props.onChoosePhoto}
         onClose={props.onCloseProfileModal}
+      />
+
+      <LeadDetailsModal
+        lead={liveSelectedLead}
+        onClose={() => setSelectedLead(null)}
+        onLeadStatusChange={props.onLeadStatusChange}
       />
 
       <DashboardHeader {...props} />
@@ -754,7 +932,8 @@ const DashboardView = (props: DashboardViewProps) => {
             {/* Row 3: leads table */}
             <LeadsSection filteredLeads={props.filteredLeads} isLoadingLeads={props.isLoadingLeads}
               activeFilter={props.activeFilter} onSelectFilter={props.onSelectFilter}
-              onLeadStatusChange={props.onLeadStatusChange} />
+              onLeadStatusChange={props.onLeadStatusChange}
+              onViewLead={(lead) => setSelectedLead(lead)} />
 
           </div>
         </main>
