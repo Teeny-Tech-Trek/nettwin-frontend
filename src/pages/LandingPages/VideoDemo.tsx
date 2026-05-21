@@ -246,12 +246,7 @@ const VideoDemo = () => {
                       animation: "live-pop 0.5s ease-out 0.5s both",
                     }}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-xs font-bold text-slate-800">
-                        LIVE DEMO
-                      </span>
-                    </div>
+                   
                   </div>
 
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

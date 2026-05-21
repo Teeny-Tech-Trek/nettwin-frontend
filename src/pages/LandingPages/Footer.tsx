@@ -4,7 +4,7 @@ import { ArrowRight, Mail, Sparkles } from "lucide-react";
 const footerLinks = [
   { name: "Home", href: "#home" },
   { name: "Features", href: "#features" },
-  { name: "Preview", href: "#preview" },
+  // { name: "Preview", href: "#preview" },
   { name: "CTA", href: "#cta" },
 ];
 

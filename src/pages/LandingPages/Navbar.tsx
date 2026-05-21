@@ -28,7 +28,7 @@ const Navbar = () => {
   const navLinks: Array<{ name: string; href: string; hash: string; active?: boolean }> = [
     { name: "Home", href: "/#home", hash: "home", active: true },
     { name: "Features", href: "/#features", hash: "features" },
-    { name: "Preview", href: "/#preview", hash: "preview" },
+    // { name: "Preview", href: "/#preview", hash: "preview" },
     { name: "CTA", href: "/#cta", hash: "cta" },
   ];
 
