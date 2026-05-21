@@ -359,11 +359,7 @@ import { ChevronLeft, ChevronRight, Sparkles, Loader2, User, ArrowLeft, Check } 
 import { toast } from "sonner";
 import { useDigitalTwin } from "@/contexts/DigitalTwinContext";
 import { useNavigate } from "react-router-dom";
-// trackPlanGateEvent — used in handleComplete to fire `avatar_created`.
-// CreateTwinGuard now lives inside SuccessScreen, no longer needed here.
-import { trackPlanGateEvent } from "@/features/plan-gating";
-// Polished post-creation screen extracted from this file. Anything that
-// changes about the success UX should happen in SuccessScreen.tsx now —
+// Polished post-creation / post-edit screen. UX lives in SuccessScreen.tsx;
 // the wizard only orchestrates the flow.
 import { SuccessScreen } from "./wizard/SuccessScreen";
 
@@ -586,18 +582,20 @@ export const DigitalTwinWizard = () => {
       setShowOutput(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Analytics + cache invalidation. Firing `twin:created` causes any
-      // mounted usePlanGate hook (on Dashboard, on the success screen's
-      // "Create Another" guard) to re-fetch /billing/status so the next
-      // gate verdict reflects the now-incremented count.
-      trackPlanGateEvent('avatar_created', {
-        twinName: data.identity?.name,
-      });
-      window.dispatchEvent(new CustomEvent('twin:created'));
+      // Tell the rest of the app the twin was saved so any cached
+      // single-twin state (Dashboard context, header CTAs) can refresh.
+      // Single window-event source of truth — no Redux/Query needed for
+      // this small surface.
+      window.dispatchEvent(new CustomEvent('twin:saved'));
 
-      toast.success("Digital Twin Profile Complete!", {
-        description: "Your professional persona has been generated and saved.",
-      });
+      toast.success(
+        digitalTwin ? "Digital Twin Updated!" : "Digital Twin Created!",
+        {
+          description: digitalTwin
+            ? "Your changes have been saved successfully."
+            : "Your professional persona has been generated and saved.",
+        }
+      );
     } catch (error) {
       console.error('Failed to save digital twin:', error);
     } finally {
@@ -634,18 +632,17 @@ export const DigitalTwinWizard = () => {
   }
 
   if (showOutput) {
-    // Polished post-creation experience. All UX lives in SuccessScreen.tsx;
-    // this component only manages the "Create Another" reset action so we
-    // don't lose the wizard's local state ownership.
+    // Polished post-save experience. UX lives in SuccessScreen.tsx; the
+    // wizard just orchestrates the flow. "Edit Twin" pops back to step 1
+    // with the current data still loaded so the user can revise.
     return (
       <SuccessScreen
         data={data}
         twinId={savedTwinId}
-        onCreateAnother={() => {
+        onEditTwin={() => {
           setShowOutput(false);
-          setSavedTwinId(undefined);
           setCurrentStep(0);
-          setData(INITIAL_DATA);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
     );

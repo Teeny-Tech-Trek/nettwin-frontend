@@ -1474,16 +1474,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useDigitalTwin } from "@/contexts/DigitalTwinContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-// digitalTwinService is now used directly for multi-twin listing; the
-// single-twin context flow is preserved for backward compatibility.
-import { authService, digitalTwinService, leadService } from '@/services/api.service';
+import { authService, leadService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
 import { Skeleton } from '@/components/ui/skeleton';
-// Plan-gating: every "Create New Digital Twin" CTA on this page must go
-// through CreateTwinGuard so free users at limit see the upgrade modal
-// instead of an in-flight 8-step wizard that 429s at the end.
-// See src/features/plan-gating/index.ts for the module's docs.
-import { CreateTwinGuard } from '@/features/plan-gating';
+// Pencil = Edit Twin CTA shown when the user already owns a twin.
+// Eye    = View Twin (public chatbot link).
+import { Pencil, Eye } from 'lucide-react';
 
 
 interface DigitalTwin {
@@ -1528,9 +1524,9 @@ const Dashboard = () => {
   const { digitalTwin, isLoading, loadDigitalTwin, deleteTwin } = useDigitalTwin();
   const { logout } = useAuth();
   const { toast } = useToast();
-  // Used by the plan-gating guards below — when the gate verdict is
-  // `allowed`, we navigate to /wizard imperatively. We don't use <Link>
-  // because the guard intercepts the click first.
+  // Imperative router push. Used by the Create/Edit CTAs to land the
+  // user on the wizard (single-twin model — the wizard auto-detects
+  // create vs edit by reading the digitalTwin from context).
   const navigate = useNavigate();
   const [twins, setTwins] = useState<DigitalTwin[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -1541,6 +1537,11 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  // Cache-buster bumped on every successful avatar upload so the <img>
+  // element refetches even when the URL path is identical (the server
+  // usually overwrites the same filename, so the browser would otherwise
+  // serve the stale local copy from disk cache).
+  const [avatarCacheKey, setAvatarCacheKey] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFetched = useRef(false);
 
@@ -1565,61 +1566,64 @@ const Dashboard = () => {
   }, [loadDigitalTwin, toast]);
 
   // ──────────────────────────────────────────────────────────────────────
-  // Multi-twin listing.
+  // Single-twin sync.
   //
-  // Previously the dashboard wrapped the single `digitalTwin` from context
-  // into a one-element `twins` array. That meant paid users with up to 10
-  // twins only ever saw their most-recent one. Now we hit GET /digital-twin/
-  // list and render the real array.
-  //
-  // The legacy `digitalTwin` from context is still hydrated by
-  // loadDigitalTwin() above (used by the wizard's edit flow); this effect
-  // is purely for the list-rendering surface.
-  //
-  // We refetch on `twin:created` and `twin:deleted` window events so
-  // navigating back from the wizard or deleting a twin updates the grid
-  // without a manual reload.
+  // Product model: each user owns at most one twin. The DigitalTwinContext
+  // already fetches it via loadDigitalTwin() on mount; we mirror that
+  // single object into a one-element `twins` array so the existing
+  // `twins.map(...)` rendering below stays intact (rather than ripping
+  // the JSX apart for a single-twin-specific layout). When the wizard
+  // dispatches `twin:saved` after create/edit, we re-fetch so the
+  // dashboard reflects the latest state without a manual reload.
   // ──────────────────────────────────────────────────────────────────────
-  const fetchAllTwins = useCallback(async () => {
-    try {
-      const res = await digitalTwinService.list();
-      const list = (res?.data ?? []) as DigitalTwin[];
-      setTwins(list);
-      // Fetch leads for the first twin only — the leads panel below is
-      // currently single-twin scoped. A future iteration can add a
-      // twin-switcher above the leads table.
-      if (list.length > 0) {
-        fetchLeads(list[0]._id);
-      } else {
-        setLeads([]);
-      }
-    } catch (error: any) {
-      console.error('Failed to list digital twins:', error);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchAllTwins();
+    if (digitalTwin) {
+      setTwins([digitalTwin]);
+      fetchLeads(digitalTwin._id);
+    } else {
+      setTwins([]);
+      setLeads([]);
+    }
+  }, [digitalTwin]);
 
-    const onMutation = () => fetchAllTwins();
-    window.addEventListener('twin:created', onMutation);
-    window.addEventListener('twin:deleted', onMutation);
-    return () => {
-      window.removeEventListener('twin:created', onMutation);
-      window.removeEventListener('twin:deleted', onMutation);
+  // Listen for twin:saved (dispatched by wizard on save and by context on
+  // delete) so the cached `digitalTwin` reloads from the server. Keeps
+  // the dashboard in sync after edits/deletes triggered elsewhere.
+  useEffect(() => {
+    const onTwinSaved = () => {
+      loadDigitalTwin();
     };
-  }, [fetchAllTwins]);
+    window.addEventListener('twin:saved', onTwinSaved);
+    return () => window.removeEventListener('twin:saved', onTwinSaved);
+  }, [loadDigitalTwin]);
 
+  // ──────────────────────────────────────────────────────────────────────
+  // BUG FIX: header was stuck showing "Loading..." forever.
+  //
+  // The backend GET /auth/profile responds with `{ success: true, user }`
+  // but this code used to do `setUserProfile(userData)` directly, which
+  // stored the wrapper object — so `userProfile.name` was always
+  // undefined and fell through to the `'Loading...'` placeholder in the
+  // header. The other call site (updateProfilePicture) does
+  // `setUserProfile(result.user)` because its response shape happens to
+  // be `{ message, user }` without `success` — but the same field name
+  // tripped us up.
+  //
+  // We now defensively unwrap: prefer `userData.user`, fall back to
+  // `userData` itself in case some intermediate layer returns the user
+  // directly. Either shape now lands in state as the actual user object.
+  // ──────────────────────────────────────────────────────────────────────
   const fetchUserProfile = async () => {
     try {
       const userData = await authService.getProfile();
-      setUserProfile(userData);
+      const user = userData?.user ?? userData;
+      setUserProfile(user);
 
-      // Show profile picture modal if user doesn't have one
-      if (!userData.profilePicture && !userData.avatar) {
-        setTimeout(() => {
-          setIsProfileModalOpen(true);
-        }, 2000);
+      // Profile-picture nudge: if the user has no photo, show the upload
+      // modal after a beat. Skip the nudge entirely if we somehow got
+      // back a malformed response so we don't spam.
+      if (user && !user.profilePicture && !user.avatar) {
+        setTimeout(() => setIsProfileModalOpen(true), 2000);
       }
     } catch (error: any) {
       console.error('Failed to fetch user profile:', error);
@@ -1642,34 +1646,100 @@ const Dashboard = () => {
     }
   };
 
+  // ──────────────────────────────────────────────────────────────────────
+  // Profile picture upload.
+  //
+  // Validations done client-side BEFORE we send anything to the server:
+  //   • MIME type must start with `image/` (jpg, png, webp, gif…)
+  //   • Size ≤ 5 MB — matches the backend multer limit in
+  //     profileController.js. Doing this check here means the user gets
+  //     instant feedback instead of a confusing 413 from nginx.
+  //   • Reject empty files (drag-drop edge case)
+  //
+  // After a successful upload we:
+  //   1. Update userProfile state from `result.user`
+  //   2. Append a cache-busting `?v=<timestamp>` to the next render of
+  //      the avatar src so the browser doesn't show the old image from
+  //      its disk cache. The state update alone isn't enough because
+  //      profilePicture path is often the SAME URL (server overwrites).
+  // ──────────────────────────────────────────────────────────────────────
+  const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
   const handleProfilePictureUpload = async (file: File) => {
+    // Pre-flight validations. Each early-return surfaces an actionable
+    // toast so the user knows exactly what to change.
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Unsupported file',
+        description: 'Please choose an image file (JPG, PNG, WebP, or GIF).',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (file.size === 0) {
+      toast({
+        title: 'Empty file',
+        description: 'That file appears to be empty. Try a different image.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      toast({
+        title: 'File too large',
+        description: `Profile pictures must be 5 MB or less — yours is ${mb} MB.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       const result = await authService.updateProfilePicture(file);
-      setUserProfile(result.user);
-      
+      const updatedUser = result?.user ?? result;
+      setUserProfile(updatedUser);
+      // Bump cache key so the <img> with the new src refetches from server
+      // even when the path is unchanged (server may have overwritten the
+      // same filename).
+      setAvatarCacheKey(Date.now());
+
       toast({
-        title: "Success",
-        description: "Profile picture updated successfully",
+        title: 'Success',
+        description: 'Profile picture updated successfully.',
       });
 
       setIsProfileModalOpen(false);
     } catch (error: any) {
+      // 413 from nginx surfaces here as a generic error with no response
+      // body — special-case it so users know the limit. Server-side multer
+      // catches the rest.
+      const status = error?.response?.status;
+      const serverMsg = error?.response?.data?.message;
+      const description =
+        status === 413
+          ? 'The server rejected the file as too large. Try an image under 5 MB.'
+          : serverMsg || error?.message || 'Failed to upload profile picture';
       toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload profile picture",
-        variant: "destructive",
+        title: 'Upload failed',
+        description,
+        variant: 'destructive',
       });
     } finally {
       setIsUploading(false);
     }
   };
 
+  // Reset the same-file edge case: if a user picks file A, the upload
+  // fails, and they re-pick file A, the input's `change` event won't fire
+  // again because the value hasn't changed. Clearing the input restores
+  // retry behavior.
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       handleProfilePictureUpload(file);
     }
+    event.target.value = '';
   };
 
   const downloadQR = useCallback((id: string) => {
@@ -1693,22 +1763,14 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Multi-twin aware delete. Passing the specific twin's id ensures we
-  // delete the one the user clicked on (vs the legacy "delete the user's
-  // single twin" behavior). The context fires `twin:deleted` on success,
-  // which the list-fetch effect above listens for to refresh the grid.
-  const handleDelete = useCallback(async (twinId?: string) => {
+  // Single-twin delete. Context's deleteTwin nulls the cached digitalTwin
+  // AND dispatches `twin:saved` so any other surface (header CTAs,
+  // sidebar) refreshes its create-vs-edit decision.
+  const handleDelete = useCallback(async () => {
     try {
-      await deleteTwin(twinId);
-      // Optimistic local removal — the twin:deleted event will also
-      // trigger a full refetch shortly, but this keeps the UI snappy.
-      if (twinId) {
-        setTwins((prev) => prev.filter((t) => t._id !== twinId));
-      } else {
-        setTwins([]);
-      }
-      // Clear leads only when no twins remain; otherwise the leads panel
-      // continues to show data for the first remaining twin.
+      await deleteTwin();
+      setTwins([]);
+      setLeads([]);
       toast({
         title: "Success",
         description: "Digital twin deleted successfully.",
@@ -1731,6 +1793,29 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
+  };
+
+  // Build the avatar src for an <img> tag.
+  //
+  //   • If the user has a server-uploaded profilePicture (a relative
+  //     /uploads/... path), prefix with IMAGE_BASE_URL and append
+  //     ?v=avatarCacheKey to bust the browser cache after re-upload.
+  //   • Else if they have an `avatar` (e.g. Google OAuth full URL),
+  //     use it as-is.
+  //   • Else return null so the caller renders the initials fallback.
+  const getAvatarSrc = (): string | null => {
+    if (!userProfile) return null;
+    if (userProfile.profilePicture) {
+      const sep = userProfile.profilePicture.includes('?') ? '&' : '?';
+      return `${IMAGE_BASE_URL}${userProfile.profilePicture}${sep}v=${avatarCacheKey}`;
+    }
+    if (userProfile.avatar) {
+      // Google/Microsoft OAuth provide absolute URLs; don't double-prefix.
+      return /^https?:\/\//i.test(userProfile.avatar)
+        ? userProfile.avatar
+        : `${IMAGE_BASE_URL}${userProfile.avatar}`;
+    }
+    return null;
   };
 
   const getInitials = (name?: string | null) => {
@@ -1876,7 +1961,7 @@ const Dashboard = () => {
                 <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo" className="w-full h-full object-contain" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-bold text-white truncate">DigitalTwin</h1>
+                <h1 className="text-base sm:text-xl font-bold text-white truncate">NetTwin</h1>
                 <p className="text-xs sm:text-sm text-cyan-300 truncate hidden xs:block">Professional AI Assistant</p>
               </div>
             </div>
@@ -1913,14 +1998,15 @@ const Dashboard = () => {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 lg:gap-3 p-2 rounded-xl lg:rounded-2xl bg-white/5 backdrop-blur-sm border border-cyan-500/20 hover:bg-white/10 hover:border-cyan-500/30 transition"
                 >
-                  {userProfile?.profilePicture || userProfile?.avatar ? (
+                  {getAvatarSrc() ? (
                     <img
-                      src={
-                        userProfile.profilePicture
-                          ? `${IMAGE_BASE_URL}${userProfile.profilePicture}`
-                          : `${IMAGE_BASE_URL}${userProfile.avatar}`
-                      }
-                      alt={userProfile.name}
+                      src={getAvatarSrc() ?? ''}
+                      alt={userProfile?.name ?? 'Profile'}
+                      onError={(e) => {
+                        // If the image 404s (deleted, expired CDN link),
+                        // hide it so the initials fallback below renders.
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
                       className="w-7 h-7 lg:w-8 lg:h-8 rounded-full object-cover ring-2 ring-cyan-500/30 flex-shrink-0"
                     />
                   ) : (
@@ -1929,10 +2015,21 @@ const Dashboard = () => {
                     </div>
                   )}
                   <div className="hidden md:block text-left min-w-0">
+                    {/* Header name + status. If userProfile is still null
+                        (first paint, profile fetch in flight) we show a
+                        small skeleton instead of the old "Loading..." text
+                        — that text used to stick forever because the API
+                        response was being stored unwrapped (see fetchUserProfile). */}
                     <div className="text-sm font-medium text-white truncate max-w-[120px]">
-                      {userProfile?.name || 'Loading...'}
+                      {userProfile?.name ?? (
+                        <Skeleton className="h-4 w-20 bg-cyan-500/10 inline-block align-middle" />
+                      )}
                     </div>
-                    <div className="text-xs text-cyan-300 truncate">Premium Plan</div>
+                    <div className="text-xs text-cyan-300 truncate">
+                      {userProfile ? 'Digital Twin' : (
+                        <Skeleton className="h-3 w-16 bg-cyan-500/10 inline-block align-middle" />
+                      )}
+                    </div>
                   </div>
                 </button>
 
@@ -1991,14 +2088,13 @@ const Dashboard = () => {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="sm:hidden"
               >
-                {userProfile?.profilePicture || userProfile?.avatar ? (
+                {getAvatarSrc() ? (
                   <img
-                    src={
-                      userProfile.profilePicture
-                        ? `${IMAGE_BASE_URL}${userProfile.profilePicture}`
-                        : `${IMAGE_BASE_URL}${userProfile.avatar}`
-                    }
-                    alt={userProfile.name}
+                    src={getAvatarSrc() ?? ''}
+                    alt={userProfile?.name ?? 'Profile'}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
                     className="w-8 h-8 rounded-full object-cover ring-2 ring-cyan-500/30"
                   />
                 ) : (
@@ -2141,37 +2237,51 @@ const Dashboard = () => {
             </Link>
 
             {/*
-              Plan-gated CTA. The guard wraps the click so a free user at
-              their 1-twin limit sees the upgrade modal instead of jumping
-              into the wizard. Visual styling is unchanged — we keep the
-              same gradient card, just swap the <Link> for a <button>.
+              Single-twin product model: this slot is either a "Create"
+              CTA (no twin yet) or an "Edit Twin" CTA (one already exists).
+              Hiding the create path when a twin exists prevents the user
+              from re-entering the wizard expecting to add a second one
+              and being silently dropped onto an upsert that overwrites
+              their existing data.
+
+              `digitalTwin` is the single-source-of-truth from the context;
+              the local `twins` array is just a UI convenience for the
+              cards grid below.
             */}
-            <CreateTwinGuard onAllow={() => navigate('/wizard')}>
-              {({ onClick, disabled, gate }) => (
-                <button
-                  type="button"
-                  onClick={onClick}
-                  disabled={disabled}
-                  className="group p-4 sm:p-6 bg-gradient-to-br from-cyan-500 to-teal-400 rounded-xl sm:rounded-2xl border border-cyan-400/30 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] transition sm:col-span-2 lg:col-span-1 text-left disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition flex-shrink-0">
-                      <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <h3 className="font-semibold text-white text-sm sm:text-base truncate">New Digital Twin</h3>
-                      <p className="text-xs sm:text-sm text-white/90 truncate">
-                        {gate.status === 'loading'
-                          ? 'Checking your plan…'
-                          : gate.limit === -1
-                            ? 'Create AI assistant'
-                            : `${gate.current}/${gate.limit} used`}
-                      </p>
-                    </div>
+            {!digitalTwin ? (
+              <button
+                type="button"
+                onClick={() => navigate('/wizard')}
+                className="group p-4 sm:p-6 bg-gradient-to-br from-cyan-500 to-teal-400 rounded-xl sm:rounded-2xl border border-cyan-400/30 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] transition sm:col-span-2 lg:col-span-1 text-left"
+              >
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition flex-shrink-0">
+                    <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
-                </button>
-              )}
-            </CreateTwinGuard>
+                  <div className="text-left min-w-0">
+                    <h3 className="font-semibold text-white text-sm sm:text-base truncate">New Digital Twin</h3>
+                    <p className="text-xs sm:text-sm text-white/90 truncate">Create AI assistant</p>
+                  </div>
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/wizard')}
+                className="group p-4 sm:p-6 bg-gradient-to-br from-cyan-500 to-teal-400 rounded-xl sm:rounded-2xl border border-cyan-400/30 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] transition sm:col-span-2 lg:col-span-1 text-left"
+                title="Edit your Digital Twin"
+              >
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition flex-shrink-0">
+                    <Pencil className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <h3 className="font-semibold text-white text-sm sm:text-base truncate">Edit Digital Twin</h3>
+                    <p className="text-xs sm:text-sm text-white/90 truncate">Update your AI assistant</p>
+                  </div>
+                </div>
+              </button>
+            )}
           </motion.div>
 
           {twins.length === 0 ? (
@@ -2185,27 +2295,17 @@ const Dashboard = () => {
               <p className="text-slate-300 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-md mx-auto px-4">
                 Create your first digital twin to start generating leads and engaging with your audience 24/7.
               </p>
-              {/*
-                Empty-state CTA. Also gated — even though most users seeing
-                this state have 0 twins (gate will be 'allowed'), wrapping
-                in the guard means the rule is enforced in one place. If a
-                race condition ever lets a free user see this empty state
-                while their count is already 1 (deletion in flight, etc.),
-                the gate still does the right thing.
-              */}
-              <CreateTwinGuard onAllow={() => navigate('/wizard')}>
-                {({ onClick, disabled }) => (
-                  <button
-                    type="button"
-                    onClick={onClick}
-                    disabled={disabled}
-                    className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-cyan-500 to-teal-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl hover:from-cyan-600 hover:to-teal-500 transition font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Create Your First Twin
-                  </button>
-                )}
-              </CreateTwinGuard>
+              {/* Empty-state CTA. No gating — users hitting this state by
+                  definition have 0 twins, so navigate straight into the
+                  wizard. */}
+              <button
+                type="button"
+                onClick={() => navigate('/wizard')}
+                className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-cyan-500 to-teal-400 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl hover:from-cyan-600 hover:to-teal-500 transition font-semibold shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 text-sm sm:text-base"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                Create Your First Twin
+              </button>
             </motion.div>
           ) : (
             <div className="space-y-6 sm:space-y-8">
@@ -2223,14 +2323,28 @@ const Dashboard = () => {
                         <h2 className="text-xl sm:text-2xl font-bold text-white truncate">{twin.identity.name}</h2>
                         <p className="text-cyan-300 mt-1 text-sm sm:text-base truncate">{twin.identity.role}</p>
                       </div>
-                      <button
-                        onClick={() => handleDelete(twin._id)}
-                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition flex-shrink-0"
-                        title="Delete this twin"
-                        aria-label="Delete digital twin"
-                      >
-                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
+                      {/* Card-level action cluster. Edit and Delete sit
+                          side-by-side; clicking Edit routes back to the
+                          wizard which pre-fills from the existing twin
+                          via the digitalTwin context. */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => navigate('/wizard')}
+                          className="p-2 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-xl transition"
+                          title="Edit this twin"
+                          aria-label="Edit digital twin"
+                        >
+                          <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete()}
+                          className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
+                          title="Delete this twin"
+                          aria-label="Delete digital twin"
+                        >
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                      </div>
                     </div>
                     
                     <p className="text-slate-300 leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base line-clamp-3">{twin.identity.bio}</p>

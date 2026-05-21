@@ -193,7 +193,6 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from './AuthContext';
 import { DigitalTwinProfile } from '@/types/digitalTwin';
 import { digitalTwinService } from '@/services/api.service';
 
@@ -207,10 +206,8 @@ interface DigitalTwinContextType {
   saveDigitalTwin: (data: DigitalTwinProfile) => Promise<DigitalTwinProfile | null>;
   loadDigitalTwin: () => Promise<void>;
   updateSection: (section: string, data: any) => Promise<void>;
-  // `twinId` optional — omit to delete the user's most-recent twin (legacy
-  // single-twin flow). Pass an id from a multi-twin list to delete that
-  // specific twin. Backend enforces ownership.
-  deleteTwin: (twinId?: string) => Promise<void>;
+  // Single-twin-per-user model — there's only ever one twin to delete.
+  deleteTwin: () => Promise<void>;
 }
 
 const DigitalTwinContext = createContext<DigitalTwinContextType | undefined>(undefined);
@@ -231,7 +228,6 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
   const [digitalTwin, setDigitalTwin] = useState<DigitalTwinProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { token } = useAuth();
 
   const saveDigitalTwin = async (data: DigitalTwinProfile) => {
     setIsLoading(true);
@@ -304,17 +300,15 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
     }
   };
 
-  const deleteTwin = async (twinId?: string) => {
+  const deleteTwin = async () => {
     setIsLoading(true);
     try {
-      await digitalTwinService.delete(twinId);
-      // Only clear the cached single-twin if we deleted THE current one
-      // (or no id was passed, meaning legacy "delete my one twin").
+      await digitalTwinService.delete();
       setDigitalTwin(null);
 
-      // Notify plan-gating so the next "Create Twin" verdict reflects the
-      // freed-up slot — same event the wizard dispatches on create.
-      window.dispatchEvent(new CustomEvent('twin:deleted'));
+      // Tell the rest of the app a twin was deleted so any cached state
+      // (Dashboard CTAs, edit-vs-create decision) refreshes immediately.
+      window.dispatchEvent(new CustomEvent('twin:saved'));
 
       toast({
         title: 'Success!',

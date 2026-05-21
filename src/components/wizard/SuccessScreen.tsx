@@ -9,8 +9,8 @@
  *   • Hero card with twin's avatar (initials), name, role, tagline.
  *   • Quick stats row (businesses, experiences, skills, links) — immediate
  *     proof that the wizard captured the user's input.
- *   • Three clear next-step actions. "Create Another" is plan-gated via
- *     the existing CreateTwinGuard from src/features/plan-gating.
+ *   • Three clear next-step actions: Go to Dashboard, View Live Twin,
+ *     and Edit Twin (single-twin model — no "Create Another" path).
  *   • Developer payload (persona prompt + JSON) moved behind a collapsed
  *     "Advanced details" accordion so the polished view stays clean.
  *   • Framer-motion entrance staggers each section so the screen feels
@@ -29,7 +29,7 @@ import {
   Crown,
   Download,
   ExternalLink,
-  Plus,
+  Pencil,
   Sparkles,
   Copy,
   Briefcase,
@@ -54,7 +54,6 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
-import { CreateTwinGuard } from '@/features/plan-gating';
 import { toast } from 'sonner';
 import type { DigitalTwinProfile } from '@/types/digitalTwin';
 
@@ -63,8 +62,13 @@ interface SuccessScreenProps {
   data: DigitalTwinProfile;
   /** The MongoDB _id of the saved twin — used to build the "View Live" public link. */
   twinId?: string;
-  /** Called when the user clicks "Create Another Twin" AND the plan gate allows it. */
-  onCreateAnother: () => void;
+  /**
+   * Called when the user clicks "Edit Twin" — reopens the wizard with the
+   * current data pre-filled. The wizard handles re-hydration; this prop
+   * just lets the parent decide whether to reset state in place or push
+   * a fresh /wizard navigation.
+   */
+  onEditTwin: () => void;
 }
 
 /** Extract initials for the avatar block, capped at 2 chars. */
@@ -97,7 +101,7 @@ Mission: ${data.story?.mission ?? ''}
 You represent them professionally in conversations, staying authentic, strategic, and human.`;
 }
 
-export function SuccessScreen({ data, twinId, onCreateAnother }: SuccessScreenProps) {
+export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) {
   const navigate = useNavigate();
 
   // Stat counts — falsy-safe in case any section came back partially populated.
@@ -300,26 +304,17 @@ export function SuccessScreen({ data, twinId, onCreateAnother }: SuccessScreenPr
               View Live Twin
             </Button>
 
-            {/* Create Another — plan-gated; the guard intercepts the click and shows the upgrade modal if at limit. */}
-            <CreateTwinGuard onAllow={onCreateAnother}>
-              {({ onClick, disabled, gate }) => (
-                <Button
-                  onClick={onClick}
-                  disabled={disabled}
-                  variant="outline"
-                  size="lg"
-                  className="border-cyan-500/30 bg-white/5 text-white hover:bg-white/10 hover:border-cyan-500/50 h-12 sm:h-14 disabled:opacity-50"
-                  title={
-                    gate.limit !== -1
-                      ? `${gate.current}/${gate.limit} twins used`
-                      : undefined
-                  }
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Another
-                </Button>
-              )}
-            </CreateTwinGuard>
+            {/* Edit Twin — reopens the wizard pre-filled with current values.
+                Single-twin-per-user model: there is no "Create Another" path. */}
+            <Button
+              onClick={onEditTwin}
+              variant="outline"
+              size="lg"
+              className="border-cyan-500/30 bg-white/5 text-white hover:bg-white/10 hover:border-cyan-500/50 h-12 sm:h-14"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              Edit Twin
+            </Button>
           </motion.div>
 
           {/* ────────────────── ADVANCED (dev payload, collapsed) ────────────────── */}
