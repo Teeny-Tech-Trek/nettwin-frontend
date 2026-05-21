@@ -743,7 +743,6 @@
 // export default Chatbot;
 
 
-
 // frontend/src/components/Chatbot.tsx
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -1103,11 +1102,14 @@ useEffect(() => {
   return (
     /*
       Responsive, ChatGPT/Claude-style layout:
-      - Full-height flex column (100dvh) so only the chat scrolls.
+      - Full-height flex column. Uses svh (smallest viewport height) so the
+        WHOLE chat always fits inside one mobile screen even when the browser's
+        URL bar + bottom toolbar are visible -> no scroll-to-reach header/input.
+        Falls back to dvh / screen on older engines.
       - Compact, refined sizing tuned for both phone and laptop.
       - Centered narrow reading column (max-w-3xl) for clean message flow.
     */
-    <div className="flex flex-col h-screen h-[100dvh] overflow-hidden bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] text-slate-200 antialiased">
+    <div className="flex flex-col h-[100svh] overflow-hidden bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] text-slate-200 antialiased">
       {/* Header */}
       <motion.div
         initial={{ y: -16, opacity: 0 }}
