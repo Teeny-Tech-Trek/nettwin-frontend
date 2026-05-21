@@ -247,6 +247,15 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<void>;
   googleAuth: (idToken: string) => Promise<GoogleAuthResult>;
   logout: () => Promise<void>;
+  // Merge a partial user update into the cached AuthContext user AND
+  // into localStorage. Use after profile edits (name, photo upload, photo
+  // remove) so that:
+  //   • Components that read `user` from context (e.g. Dashboard header
+  //     avatar) re-render with the new value immediately.
+  //   • The next full page reload boots from a fresh cached user instead
+  //     of the stale one (which is what made deleted avatars keep 404ing
+  //     on refresh).
+  updateUser: (patch: Partial<User>) => void;
   // True until the *first* session-restore attempt has fully completed.
   // ProtectedRoute MUST gate on this — never on `user === null` alone —
   // otherwise we redirect to /login during the in-flight /auth/profile
@@ -295,6 +304,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+  };
+
+  // Merge a partial user patch into context state AND localStorage.
+  // Called from screens that mutate the user record server-side (profile
+  // name edit, profile picture upload/remove) so that other surfaces
+  // re-render and a page refresh hydrates from the new values rather
+  // than the stale cached ones.
+  const updateUser = (patch: Partial<User>) => {
+    setUser((prev) => {
+      const next = { ...(prev ?? ({} as User)), ...patch } as User;
+      try {
+        localStorage.setItem('user', JSON.stringify(next));
+      } catch {
+        // Storage quota / privacy mode — state still updates in-memory.
+      }
+      return next;
+    });
   };
 
   // Returns true if profile fetch succeeded, false if it failed (e.g. 401
@@ -494,6 +520,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signup,
     googleAuth,
     logout,
+    updateUser,
     isInitializing,
     isLoading,
   };

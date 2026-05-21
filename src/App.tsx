@@ -42,6 +42,7 @@ import HomeAllPage from "./pages/LandingPages/HomeAllPage";
 import Resume from "./pages/Resume";
 import Portfolio from "./pages/Portfolio";
 import Billing from "./pages/Billing";
+import ProfileSettings from "./pages/ProfileSettings";
 import PublicLayout from "./layouts/PublicLayout";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 
@@ -82,31 +83,37 @@ const App = () => (
                 }
               />
 
-              {/* Public twin views — visitors land here from a shared link
-                  so they need to NOT see the app's authenticated chrome
-                  but DO see the marketing footer for legitimacy. */}
+              {/* Public twin views — these are the surfaces visitors land
+                  on via a QR scan or a shared link. They render as
+                  standalone twin/app pages: NO marketing Navbar, NO
+                  marketing Footer, NO chatbot widget. Putting them in
+                  AuthenticatedLayout (which is really a "no-chrome"
+                  layout) keeps the QR-scan experience focused on the
+                  twin itself instead of looking like a sub-page of the
+                  marketing site. They remain unguarded (no
+                  ProtectedRoute) so anonymous visitors can view them. */}
               <Route
                 path="/chatbot/:id"
                 element={
-                  <PublicLayout>
+                  <AuthenticatedLayout>
                     <Chatbot />
-                  </PublicLayout>
+                  </AuthenticatedLayout>
                 }
               />
               <Route
                 path="/resume"
                 element={
-                  <PublicLayout>
+                  <AuthenticatedLayout>
                     <Resume />
-                  </PublicLayout>
+                  </AuthenticatedLayout>
                 }
               />
               <Route
                 path="/portfolio"
                 element={
-                  <PublicLayout>
+                  <AuthenticatedLayout>
                     <Portfolio />
-                  </PublicLayout>
+                  </AuthenticatedLayout>
                 }
               />
 
@@ -138,6 +145,16 @@ const App = () => (
                   <ProtectedRoute>
                     <AuthenticatedLayout>
                       <Billing />
+                    </AuthenticatedLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <AuthenticatedLayout>
+                      <ProfileSettings />
                     </AuthenticatedLayout>
                   </ProtectedRoute>
                 }

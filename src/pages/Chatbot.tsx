@@ -1132,9 +1132,9 @@ useEffect(() => {
               ) : (
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: 5 }}
-                  className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center shadow-lg shadow-cyan-500/30 flex-shrink-0"
+                  className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12  flex items-center justify-center  flex-shrink-0"
                 >
-                  <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo" className="w-full h-full object-contain p-1" />
+                  <img src="/logo.png" alt="logo" className="w-full h-full object-contain p-1" />
                 </motion.div>
               )}
 
@@ -1196,8 +1196,8 @@ useEffect(() => {
                           className="w-7 h-7 sm:w-8 sm:h-8 lg:w-12 lg:h-12 rounded-xl sm:rounded-2xl object-cover shadow-lg border border-cyan-500/30"
                         />
                       ) : (
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 lg:w-12 lg:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                          <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo" className="w-full h-full object-contain p-0.5 sm:p-1" />
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 lg:w-12 lg:h-12 flex items-center justify-center ">
+                          <img src="/logo.png" alt="logo" className="w-full h-full object-contain p-0.5 sm:p-1" />
                         </div>
                       )
                     ) : (

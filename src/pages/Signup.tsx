@@ -313,15 +313,15 @@ const Signup = () => {
               transition={{ duration: 0.3 }}
               className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl flex items-center justify-center"
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(30,20,55,0.8) 0%, rgba(50,30,90,0.8) 100%)",
-                border: "1.5px solid rgba(168,85,247,0.5)",
-                boxShadow:
-                  "0 0 25px rgba(139,92,246,0.45), inset 0 0 12px rgba(168,85,247,0.2)",
+                // background:
+                //   "linear-gradient(135deg, rgba(30,20,55,0.8) 0%, rgba(50,30,90,0.8) 100%)",
+                // border: "1.5px solid rgba(168,85,247,0.5)",
+                // boxShadow:
+                //   "0 0 25px rgba(139,92,246,0.45), inset 0 0 12px rgba(168,85,247,0.2)",
               }}
             >
               <img
-                src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png"
+                src="/logo.png"
                 alt="logo"
                 className="w-full h-full object-contain p-2"
                 draggable={false}

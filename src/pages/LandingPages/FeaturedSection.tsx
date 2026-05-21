@@ -132,7 +132,7 @@ const FeaturesSection = () => {
     {
       title: "AI-Powered Intelligence",
       description:
-        "Your digital twin learns your communication style, expertise, and personality to represent you authentically.",
+        "Your net twin learns your communication style, expertise, and personality to represent you authentically.",
       image: BrainImg,
     },
     {
@@ -144,7 +144,7 @@ const FeaturesSection = () => {
     {
       title: "24/7 Availability",
       description:
-        "Never miss an opportunity. Your digital twin is always available to engage with potential clients.",
+        "Never miss an opportunity. Your net twin is always available to engage with potential clients.",
       image: ClockImg,
     },
     {

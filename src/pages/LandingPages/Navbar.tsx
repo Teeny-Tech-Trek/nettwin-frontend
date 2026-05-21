@@ -90,38 +90,22 @@ const Navbar = () => {
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: -3 }}
                   whileTap={{ scale: 0.95 }}
-                  className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0"
+                  className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0"
                   style={{
                     background:
                       "linear-gradient(135deg, #0a1f3d 0%, #102a4e 50%, #0a1f3d 100%)",
-                    border: "1.5px solid rgba(34,211,238,0.4)",
+                    // border: "1.5px solid rgba(34,211,238,0.4)",
                     boxShadow:
                       "0 0 20px rgba(34,211,238,0.35), inset 0 0 12px rgba(34,211,238,0.15)",
                   }}
                 >
                   {/* If using your own logo: */}
-                      <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="NetTwin" className="w-full h-full object-cover rounded-full" />
+                      <img src="/logo.png" alt="NetTwin" className="w-full h-full object-cover scale-75 rounded-full" />
                       {/* Otherwise the SVG below is a placeholder that matches the image. */}
                  
-                  <TwinSilhouettes />
+                  {/* <TwinSilhouettes /> */}
                   {/* Animated ring glow */}
-                  <motion.div
-                    animate={{
-                      opacity: [0.4, 0.7, 0.4],
-                      scale: [1, 1.15, 1],
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    style={{
-                      background:
-                        "radial-gradient(circle, rgba(34,211,238,0.25) 0%, transparent 70%)",
-                      filter: "blur(8px)",
-                    }}
-                  />
+                 
                 </motion.div>
 
                 {/* Brand text */}

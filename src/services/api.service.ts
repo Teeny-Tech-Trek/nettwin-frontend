@@ -68,11 +68,37 @@ export const authService = {
   updateProfilePicture: async (file: File) => {
     const formData = new FormData();
     formData.append('profilePicture', file);
-    
+
     const response = await axiosInstance.put('/auth/profile/picture', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    });
+    return response.data;
+  },
+
+  // Remove the current profile picture (server deletes the file and
+  // clears the user.profilePicture field). Returns the updated user.
+  removeProfilePicture: async () => {
+    const response = await axiosInstance.delete('/auth/profile/picture');
+    return response.data;
+  },
+
+  // Update display name (and optionally other profile fields the backend
+  // allows). Backend route is PUT /auth/profile guarded by updateProfileSchema —
+  // it accepts `name` and validates it server-side.
+  updateProfile: async (updates: { name?: string }) => {
+    const response = await axiosInstance.put('/auth/profile', updates);
+    return response.data;
+  },
+
+  // Change password. Backend revokes all refresh tokens on success, so the
+  // caller should treat this as a "log everywhere out + redirect to login"
+  // signal.
+  changePassword: async (oldPassword: string, newPassword: string) => {
+    const response = await axiosInstance.post('/auth/change-password', {
+      oldPassword,
+      newPassword,
     });
     return response.data;
   },

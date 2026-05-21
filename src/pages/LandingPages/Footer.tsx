@@ -86,17 +86,17 @@ const AppFooter = () => {
           >
             <a href="#home" className="flex items-center gap-3 w-fit">
               <span
-                className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden"
+                className="relative w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
                 style={{
                   background:
                     "linear-gradient(135deg, #0a1f3d 0%, #102a4e 50%, #0a1f3d 100%)",
-                  border: "1.5px solid rgba(34,211,238,0.4)",
+                  // border: "1.5px solid rgba(34,211,238,0.4)",
                   boxShadow:
                     "0 0 20px rgba(34,211,238,0.35), inset 0 0 12px rgba(34,211,238,0.15)",
                 }}
               >
                 <img
-                  src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png"
+                  src="/logo.png"
                   alt="NetTwin"
                   className="w-full h-full object-cover"
                 />
@@ -183,7 +183,7 @@ const AppFooter = () => {
               className="text-sm leading-relaxed mb-5"
               style={{ color: "rgba(255,255,255,0.58)" }}
             >
-              Start building your digital twin and make every connection easier.
+              Start building your net twin and make every connection easier.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3">
               <a

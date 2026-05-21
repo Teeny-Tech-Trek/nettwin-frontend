@@ -589,7 +589,7 @@ export const DigitalTwinWizard = () => {
       window.dispatchEvent(new CustomEvent('twin:saved'));
 
       toast.success(
-        digitalTwin ? "Digital Twin Updated!" : "Digital Twin Created!",
+        digitalTwin ? "Net Twin Updated!" : "Net Twin Created!",
         {
           description: digitalTwin
             ? "Your changes have been saved successfully."
@@ -667,7 +667,7 @@ export const DigitalTwinWizard = () => {
             <User className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-white" />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-teal-300 bg-clip-text text-transparent mb-3 sm:mb-4">
-            Digital Twin Architect
+            Net Twin Architect
           </h1>
           <p className="text-base sm:text-lg lg:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Build an intelligent professional persona that speaks, thinks, and connects like you
@@ -677,7 +677,7 @@ export const DigitalTwinWizard = () => {
             <div className="mt-4 sm:mt-6 inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-teal-500/10 border border-teal-500/30 rounded-lg sm:rounded-xl shadow-sm">
               <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse flex-shrink-0"></div>
               <span className="text-teal-300 font-medium text-xs sm:text-sm">
-                📋 Editing existing digital twin profile
+                📋 Editing existing net twin profile
               </span>
             </div>
           )}

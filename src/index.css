@@ -123,6 +123,7 @@ All colors MUST be HSL.
   }
 }
 
+
 @layer utilities {
   .font-syne-bold {
     font-family: 'Syne', sans-serif;

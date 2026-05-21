@@ -203,11 +203,11 @@ const VideoDemo = () => {
           <div data-video-heading className="text-center mb-12 md:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-5 sm:mb-6 text-white leading-tight font-syne-bold">
               Watch Our{" "}
-              <span className="text-cyan-400">Digital Twin Demo</span>
+              <span className="text-cyan-400">Net Twin Demo</span>
             </h2>
 
             <p className="text-slate-300 text-base sm:text-lg mb-8 max-w-lg mx-auto">
-              See how your AI-powered Digital Twin interacts in real-time.
+              See how your AI-powered Net Twin interacts in real-time.
             </p>
           </div>
 
@@ -233,7 +233,7 @@ const VideoDemo = () => {
                     loop
                     playsInline
                     preload="auto"
-                    src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/Orion_%20Digital%20Twin.mp4"
+                    src="/NetTwinVideo.MP4"
                   >
                     Your browser does not support the video tag.
                   </video>

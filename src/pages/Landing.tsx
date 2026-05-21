@@ -100,7 +100,7 @@ const Landing = () => {
                 Your AI-Powered
                 <br />
                 <span className="text-white">
-                  Digital Twin
+                  Net Twin
                 </span>
               </motion.h1>
 
@@ -325,7 +325,7 @@ const FeaturesSection = () => {
     {
       icon: Bot,
       title: "AI-Powered Intelligence",
-      description: "Your digital twin learns your communication style, expertise, and personality to represent you authentically."
+      description: "Your net twin learns your communication style, expertise, and personality to represent you authentically."
     },
     {
       icon: QrCode,
@@ -335,7 +335,7 @@ const FeaturesSection = () => {
     {
       icon: Sparkles,
       title: "24/7 Availability",
-      description: "Never miss an opportunity. Your digital twin is always available to engage with potential clients."
+      description: "Never miss an opportunity. Your net twin is always available to engage with potential clients."
     },
     {
       icon: Shield,
@@ -551,7 +551,7 @@ const CTASection = () => {
               Ready to Get Started?
             </h2>
             <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
-              Join thousands of professionals using Digital Twin to scale their presence
+              Join thousands of professionals using net Twin to scale their presence
             </p>
             <Button 
               size="lg" 
