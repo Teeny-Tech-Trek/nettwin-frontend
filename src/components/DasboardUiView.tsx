@@ -439,7 +439,7 @@ const TwinAvatar = ({ src, name }: { src: string | null; name: string }) =>
   src ? (
     <img src={src} alt={name}
       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-      className="w-16 h-16 flex-shrink-0" />
+      className="w-16 h-20 flex-shrink-0" />
   ) : (
     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
       {getInitials(name)}

@@ -748,6 +748,8 @@
 
 
 
+
+
 // frontend/src/components/Chatbot.tsx
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -825,6 +827,7 @@ const Chatbot = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   // Check mobile viewport
   useEffect(() => {
@@ -833,6 +836,41 @@ const Chatbot = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // LAYOUT-ONLY: keep the app sized to the EXACT visible area.
+  // CSS units (vh/svh/dvh) can't react to the iOS on-screen keyboard, so we
+  // read window.visualViewport (its height + offset shrink/move when the
+  // keyboard or browser toolbars appear) and pin the root to it. This does NOT
+  // touch any chat state, handlers, or API calls — it only sets size/position.
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    const applyViewport = () => {
+      const el = rootRef.current;
+      if (!el) return;
+      if (vv) {
+        el.style.height = `${vv.height}px`;
+        el.style.top = `${vv.offsetTop}px`;
+      } else {
+        el.style.height = `${window.innerHeight}px`;
+        el.style.top = "0px";
+      }
+    };
+    applyViewport();
+    if (vv) {
+      vv.addEventListener("resize", applyViewport);
+      vv.addEventListener("scroll", applyViewport);
+    }
+    window.addEventListener("resize", applyViewport);
+    window.addEventListener("orientationchange", applyViewport);
+    return () => {
+      if (vv) {
+        vv.removeEventListener("resize", applyViewport);
+        vv.removeEventListener("scroll", applyViewport);
+      }
+      window.removeEventListener("resize", applyViewport);
+      window.removeEventListener("orientationchange", applyViewport);
+    };
+  }, [agent]);
 
   useEffect(() => {
   if (messagesEndRef.current) {
@@ -1107,14 +1145,19 @@ useEffect(() => {
   return (
     /*
       Responsive, ChatGPT/Claude-style layout:
-      - Full-height flex column. Uses dvh (DYNAMIC viewport height) so the chat
-        always fills the EXACT visible area as the browser's URL bar / bottom
-        toolbar show or hide -> no clipping at the top, no black gap at the
-        bottom. This matches how production chat apps fill a mobile screen.
+      - Pinned to the LIVE visible viewport (see the visualViewport effect
+        above) via position:fixed, so it always fills the exact area between the
+        browser toolbars / above the on-screen keyboard -> no top clip, no
+        bottom gap, no keyboard gap, on both Safari and Chrome. The inline
+        100dvh is only the first-paint fallback before the effect runs.
       - Compact, refined sizing tuned for both phone and laptop.
       - Centered narrow reading column (max-w-3xl) for clean message flow.
     */
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] text-slate-200 antialiased">
+    <div
+      ref={rootRef}
+      style={{ position: "fixed", left: 0, right: 0 }}
+      className="flex flex-col h-[100dvh] overflow-hidden bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] text-slate-200 antialiased"
+    >
       {/* Header */}
       <motion.div
         initial={{ y: -16, opacity: 0 }}
