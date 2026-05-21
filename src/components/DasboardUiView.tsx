@@ -473,24 +473,26 @@ const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, on
       </div>
 
       {/* Card body */}
-      <div className="px-6 py-5 flex gap-5">
+      <div className="px-6 py-5 flex flex-col sm:flex-row gap-5">
         {/* Avatar + info */}
-        <TwinAvatar src={avatarSrc} name={twin.identity?.name} />
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold text-white leading-tight">{twin.identity?.name}</h2>
-          <p className="text-cyan-400 text-sm font-medium mt-0.5">{twin.identity?.role}</p>
-          <p className={`text-slate-400/70 text-sm leading-relaxed mt-2 ${expanded ? '' : 'line-clamp-3'}`}>{bio}</p>
-          {isLong && (
-            <button onClick={() => setExpanded(v => !v)} className="text-cyan-400 hover:text-cyan-300 text-xs font-medium mt-1 transition-colors">
-              {expanded ? 'Show less' : 'Read more'}
-            </button>
-          )}
+        <div className="flex gap-4 sm:gap-5 flex-1 min-w-0">
+          <TwinAvatar src={avatarSrc} name={twin.identity?.name} />
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-white leading-tight">{twin.identity?.name}</h2>
+            <p className="text-cyan-400 text-sm font-medium mt-0.5">{twin.identity?.role}</p>
+            <p className={`text-slate-400/70 text-sm leading-relaxed mt-2 ${expanded ? '' : 'line-clamp-3'}`}>{bio}</p>
+            {isLong && (
+              <button onClick={() => setExpanded(v => !v)} className="text-cyan-400 hover:text-cyan-300 text-xs font-medium mt-1 transition-colors">
+                {expanded ? 'Show less' : 'Read more'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* QR code */}
-        <div className="hidden sm:flex flex-col items-center gap-2 flex-shrink-0">
-          <div className="p-2 bg-white rounded-xl shadow-md">
-            <QRCode id={`qr-${twin._id}`} value={twinPublicUrl(twin._id)} size={80} />
+        <div className="flex w-full sm:w-auto flex-col items-center gap-2 flex-shrink-0">
+          <div className="p-3 bg-white rounded-xl shadow-md">
+            <QRCode id={`qr-${twin._id}`} value={twinPublicUrl(twin._id)} size={132} />
           </div>
           <button onClick={() => onDownloadQR(twin._id)}
             className="flex items-center gap-1 text-cyan-400/80 hover:text-cyan-300 text-[11px] font-medium transition-colors">
