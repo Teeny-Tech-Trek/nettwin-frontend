@@ -1147,7 +1147,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDigitalTwin } from '@/contexts/DigitalTwinContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { authService, leadService } from '@/services/api.service';
+import { authService, leadService, digitalTwinService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SourcesPanel } from '@/components/SourcesPanel';
@@ -1237,6 +1237,47 @@ const Dashboard = () => {
     window.addEventListener('twin:saved', onTwinSaved);
     return () => window.removeEventListener('twin:saved', onTwinSaved);
   }, [loadDigitalTwin]);
+
+  // "Twin ready" email trigger.
+  //
+  // The Node endpoint /api/digital-twin/ingestion-status is what actually
+  // fires the welcome email (idempotent via twin.aiReadyEmailedAt). It only
+  // sends when an authenticated caller hits it AND the AI backend has
+  // flipped overall_status to "ready".
+  //
+  // The SuccessScreen polls it during the post-wizard view, but if the user
+  // closes that tab before indexing finishes, nobody triggers it. So we
+  // also poll here whenever the dashboard is open and the twin hasn't been
+  // notified yet — this covers the "closed the wizard, came back later" case.
+  useEffect(() => {
+    if (!digitalTwin?._id) return;
+    // @ts-expect-error — aiReadyEmailedAt is server-set, not on the TS type
+    if (digitalTwin.aiReadyEmailedAt) return;
+
+    let cancelled = false;
+    const POLL_MS = 5000;
+    const TIMEOUT_MS = 10 * 60 * 1000;
+    const startedAt = Date.now();
+
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const res = await digitalTwinService.ingestionStatus();
+        if (res?.notice === 'sent' || res?.notice === 'previously-sent') {
+          // Email is out (or was already out) — stop polling and refresh the
+          // cached twin so aiReadyEmailedAt becomes visible.
+          loadDigitalTwin();
+          return;
+        }
+      } catch {
+        // Transient — keep polling.
+      }
+      if (Date.now() - startedAt > TIMEOUT_MS) return;
+      setTimeout(tick, POLL_MS);
+    };
+    tick();
+    return () => { cancelled = true; };
+  }, [digitalTwin?._id, loadDigitalTwin]);
 
   // GET /auth/profile responds with `{ success: true, user }`; defensively
   // unwrap so `userProfile` is always the actual user object.

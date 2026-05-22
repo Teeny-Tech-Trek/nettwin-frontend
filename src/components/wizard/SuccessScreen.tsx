@@ -21,6 +21,7 @@
  * stats grid collapses 4→2 cols, text sizes step down.
  */
 
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -38,7 +39,9 @@ import {
   LinkIcon,
   Loader2,
   Mail,
+  CheckCircle2,
 } from 'lucide-react';
+import { digitalTwinService } from '@/services/api.service';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -103,8 +106,50 @@ Mission: ${data.story?.mission ?? ''}
 You represent them professionally in conversations, staying authentic, strategic, and human.`;
 }
 
+type ReadyState = "indexing" | "ready" | "timeout";
+
 export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) {
   const navigate = useNavigate();
+
+  // Live poll of the AI-backend ingestion status so the user sees
+  // "indexing → ready" without refreshing. The endpoint is also the one
+  // that fires the welcome email (idempotent), so polling here is what
+  // actually triggers delivery once the FastAPI worker finishes.
+  const [readyState, setReadyState] = useState<ReadyState>("indexing");
+  const [emailNotice, setEmailNotice] = useState<"sent" | "previously-sent" | null>(null);
+  const pollingCancelled = useRef(false);
+
+  useEffect(() => {
+    pollingCancelled.current = false;
+    const startedAt = Date.now();
+    const POLL_EVERY = 4000;
+    const TIMEOUT_MS = 5 * 60 * 1000;
+
+    const tick = async () => {
+      if (pollingCancelled.current) return;
+      try {
+        const res = await digitalTwinService.ingestionStatus();
+        const overall = res?.data?.overall_status;
+        if (overall === "ready") {
+          setReadyState("ready");
+          if (res?.notice === "sent" || res?.notice === "previously-sent") {
+            setEmailNotice(res.notice);
+          }
+          return; // stop polling
+        }
+      } catch (err) {
+        // Network blip — keep polling unless we've timed out.
+        console.debug("[ready-poll] transient error", err);
+      }
+      if (Date.now() - startedAt > TIMEOUT_MS) {
+        setReadyState("timeout");
+        return;
+      }
+      setTimeout(tick, POLL_EVERY);
+    };
+    tick();
+    return () => { pollingCancelled.current = true; };
+  }, []);
 
   // Stat counts — falsy-safe in case any section came back partially populated.
   const stats = [
@@ -234,23 +279,81 @@ export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) 
               email them when it's all ready, instead of letting them stare
               at a "ready" page and wonder why the chatbot is empty. */}
           <motion.div variants={item}>
-            <Card className="p-5 sm:p-6 bg-cyan-500/10 border-cyan-500/30 backdrop-blur-sm">
+            <Card
+              className={`p-5 sm:p-6 backdrop-blur-sm ${
+                readyState === "ready"
+                  ? "bg-emerald-500/10 border-emerald-500/30"
+                  : readyState === "timeout"
+                  ? "bg-amber-500/10 border-amber-500/30"
+                  : "bg-cyan-500/10 border-cyan-500/30"
+              }`}
+            >
               <div className="flex items-start gap-3 sm:gap-4">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 animate-spin" />
+                <div
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    readyState === "ready"
+                      ? "bg-emerald-500/20"
+                      : readyState === "timeout"
+                      ? "bg-amber-500/20"
+                      : "bg-cyan-500/20"
+                  }`}
+                >
+                  {readyState === "ready" ? (
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
+                  ) : readyState === "timeout" ? (
+                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+                  ) : (
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 animate-spin" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm sm:text-base font-semibold text-white mb-1">
-                    Generating your AI twin in the background
-                  </h3>
-                  <p className="text-xs sm:text-sm text-cyan-100/90 leading-relaxed mb-2 sm:mb-3">
-                    Your profile is saved. We're indexing it now so the chatbot answers from your real data —
-                    this usually takes a minute or two. You don't have to wait here.
-                  </p>
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-cyan-200 font-medium">
-                    <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    We'll email you the moment it's ready.
-                  </div>
+                  {readyState === "ready" ? (
+                    <>
+                      <h3 className="text-sm sm:text-base font-semibold text-white mb-1">
+                        Your AI twin is ready
+                      </h3>
+                      <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed mb-2 sm:mb-3">
+                        The chatbot is now answering from your real profile data.
+                        {twinId && (
+                          <> Try it at <Link to={`/chatbot/${twinId}`} className="underline text-emerald-200 hover:text-white">your public twin link</Link>.</>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-emerald-200 font-medium">
+                        <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        {emailNotice === "sent"
+                          ? "Welcome email sent — check your inbox."
+                          : "Welcome email already delivered."}
+                      </div>
+                    </>
+                  ) : readyState === "timeout" ? (
+                    <>
+                      <h3 className="text-sm sm:text-base font-semibold text-white mb-1">
+                        Still indexing — taking longer than usual
+                      </h3>
+                      <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed mb-2 sm:mb-3">
+                        Your profile is saved and will finish indexing shortly. You can leave this page; we'll
+                        email you as soon as it's done.
+                      </p>
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-amber-200 font-medium">
+                        <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        Email will arrive when ready.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-sm sm:text-base font-semibold text-white mb-1">
+                        Generating your AI twin in the background
+                      </h3>
+                      <p className="text-xs sm:text-sm text-cyan-100/90 leading-relaxed mb-2 sm:mb-3">
+                        Your profile is saved. We're indexing it now so the chatbot answers from your real data —
+                        this usually takes 1–2 minutes. You can stay here or go to the dashboard.
+                      </p>
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-cyan-200 font-medium">
+                        <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        We'll email you the moment it's ready.
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </Card>

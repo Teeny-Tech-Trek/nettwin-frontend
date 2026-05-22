@@ -362,6 +362,7 @@ import { useNavigate } from "react-router-dom";
 // Polished post-creation / post-edit screen. UX lives in SuccessScreen.tsx;
 // the wizard only orchestrates the flow.
 import { SuccessScreen } from "./wizard/SuccessScreen";
+import { Step0Upload } from "./wizard/steps/Step0Upload";
 
 const INITIAL_DATA: DigitalTwinProfile = {
   identity: { name: "", role: "", tagline: "", bio: "" },
@@ -536,6 +537,10 @@ export const DigitalTwinWizard = () => {
   // the twin list after creation just to find the id we already had in
   // the create response.
   const [savedTwinId, setSavedTwinId] = useState<string | undefined>(undefined);
+  // Show the "upload resume / website / fill manually" pre-step BEFORE the
+  // main 9-step wizard, but only when the user has no twin yet. Editors
+  // bypass it (they already filled the form once).
+  const [showQuickStart, setShowQuickStart] = useState(true);
   const { saveDigitalTwin, digitalTwin, isLoading } = useDigitalTwin();
   const navigate = useNavigate();
 
@@ -557,10 +562,24 @@ export const DigitalTwinWizard = () => {
         ...INITIAL_DATA,
         ...profileData,
       });
+      // User already has a twin — they're editing, skip the quick-start.
+      setShowQuickStart(false);
     } else {
       setData(INITIAL_DATA);
     }
   }, [digitalTwin]);
+
+  /** Called by Step0Upload — either with extracted profile fields (auto-fill)
+   * or null (user chose to fill manually). Either way we hide the
+   * quick-start and drop the user into the normal wizard at step 1. */
+  const handleQuickStartComplete = (extracted: Partial<DigitalTwinProfile> | null) => {
+    if (extracted) {
+      setData({ ...INITIAL_DATA, ...extracted } as DigitalTwinProfile);
+    }
+    setShowQuickStart(false);
+    setCurrentStep(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleBack = () => {
     if (currentStep > 0) {
@@ -683,7 +702,17 @@ export const DigitalTwinWizard = () => {
           )}
         </div>
 
+        {/* QUICK-START SCREEN — shown only on first-time creation. After it
+            completes (upload, crawl, or manual-skip) we fall through to the
+            normal 9-step wizard with `data` either pre-filled or empty. */}
+        {showQuickStart && (
+          <Card className="p-4 sm:p-6 lg:p-8 shadow-2xl border-0 bg-green-50 rounded-2xl sm:rounded-3xl">
+            <Step0Upload onComplete={handleQuickStartComplete} />
+          </Card>
+        )}
+
         {/* MAIN CARD WITH LIGHT INTERIOR */}
+        {!showQuickStart && (
         <Card className="p-4 sm:p-6 lg:p-8 shadow-2xl border-0 bg-green-50 rounded-2xl sm:rounded-3xl">
           <StepIndicator currentStep={currentStep} totalSteps={totalSteps} stepTitles={STEP_TITLES} />
 
@@ -767,6 +796,7 @@ export const DigitalTwinWizard = () => {
             </Button>
           </div>
         </Card>
+        )}
 
         <div className="text-center mt-6 sm:mt-8 px-4">
           <p className="text-xs sm:text-sm text-slate-400">
