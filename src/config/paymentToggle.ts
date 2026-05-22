@@ -8,7 +8,7 @@
 // digital_twin_backend/src/config/paymentToggle.js.
 //
 // This file just exposes:
-//   1) SUPPORT_CONTACT_EMAIL  — the address shown in the "payments paused"
+//   1) SUPPORT_CONTACT_EMAIL jdjdj — the address shown in the "payments paused"
 //      modal. Hardcoded so flipping it never requires a frontend env change.
 //   2) isPaymentsDisabledError — recognises the backend's 503 PAYMENTS_DISABLED
 //      response so callers can open the "Contact us" modal as a graceful
