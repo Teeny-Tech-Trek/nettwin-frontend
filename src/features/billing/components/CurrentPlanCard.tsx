@@ -85,9 +85,16 @@ export const CurrentPlanCard: React.FC<CurrentPlanCardProps> = ({ status }) => {
       )}
 
       <div className="space-y-4">
-        <UsageBar label="Digital twins" metric={status.usage.twins} />
+        {/* All NetTwin plans currently grant unlimited twins and leads —
+            those bars would just sit at "0 / ∞" and crowd the card. Show
+            them only when the plan caps them. */}
+        {status.usage.twins.limit !== -1 && (
+          <UsageBar label="Digital twins" metric={status.usage.twins} />
+        )}
         <UsageBar label="Chatbot messages" metric={status.usage.messages} />
-        <UsageBar label="Leads captured" metric={status.usage.leads} />
+        {status.usage.leads.limit !== -1 && (
+          <UsageBar label="Leads captured" metric={status.usage.leads} />
+        )}
       </div>
     </div>
   );

@@ -72,7 +72,7 @@ export const BillingPage: React.FC = () => {
         )}
 
         <h2 className="text-xl font-semibold text-white mb-4">Available plans</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}

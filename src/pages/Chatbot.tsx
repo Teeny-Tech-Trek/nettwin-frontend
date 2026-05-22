@@ -826,6 +826,9 @@ const Chatbot = () => {
   const [leadData, setLeadData] = useState<LeadFormData>({ name: "", email: "", phone: "", company: "", interest: "" });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  // True after the owner has hit their monthly chat-message quota — freezes
+  // the composer and surfaces a "currently not available" banner.
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -968,8 +971,27 @@ useEffect(() => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Chat API error:", err);
+      // Quota exceeded — the owner has hit their plan's monthly message
+      // limit. Surface a clear "currently not available" message instead
+      // of the generic error, and freeze further sends for this session.
+      const status = err?.response?.status;
+      const code = err?.response?.data?.error;
+      if (status === 429 || code === "QUOTA_EXCEEDED") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 3).toString(),
+            role: "assistant",
+            content:
+              "This digital twin is currently not available — its owner has reached their monthly chat limit. Please check back after their next renewal, or reach out to them directly.",
+            timestamp: new Date(),
+          },
+        ]);
+        setQuotaExceeded(true);
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -1340,19 +1362,28 @@ useEffect(() => {
             transition={{ delay: 0.15 }}
             className="pt-2.5 pb-3 sm:pb-4"
           >
+            {quotaExceeded && (
+              <div className="mb-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[12px] sm:text-[13px] text-amber-200 text-center">
+                This digital twin is currently not available — its owner has reached their monthly chat limit.
+              </div>
+            )}
             <div className="flex items-center gap-2 p-1.5 rounded-full bg-white/[0.05] border border-white/10 focus-within:border-cyan-400/40 focus-within:bg-white/[0.07] transition-all duration-200">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={`Message ${agent.identity.name}...`}
+                placeholder={
+                  quotaExceeded
+                    ? "Chat unavailable — owner's monthly limit reached"
+                    : `Message ${agent.identity.name}...`
+                }
                 className="flex-1 min-w-0 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-9 text-[14px] sm:text-[15px] px-3 sm:px-4 text-white placeholder:text-slate-500"
-                disabled={loading}
+                disabled={loading || quotaExceeded}
                 aria-label="Type your message"
               />
               <Button
                 onClick={() => handleSend()}
-                disabled={!input.trim() || loading}
+                disabled={!input.trim() || loading || quotaExceeded}
                 variant="default"
                 size="sm"
                 className="h-9 w-9 p-0 rounded-full bg-gradient-to-br from-cyan-500 to-teal-400 hover:from-cyan-600 hover:to-teal-500 border-0 disabled:opacity-40 transition-all duration-200 flex-shrink-0"
