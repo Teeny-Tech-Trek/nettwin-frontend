@@ -237,7 +237,7 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
 
       toast({
         title: 'Success!',
-        description: 'Your digital twin has been saved successfully.',
+        description: 'Your net twin has been saved successfully.',
       });
       // Hand the saved doc (with server-assigned _id) back to the caller.
       // The wizard uses this to populate the success screen's "View Live"
@@ -267,7 +267,7 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
         return;
       }
       
-      console.error('Load digital twin error:', error);
+      console.error('Load net twin error:', error);
       toast({
         title: 'Load failed',
         description: error.response?.data?.message || error.message || 'Failed to load digital twin',
@@ -312,7 +312,7 @@ export const DigitalTwinProvider: React.FC<DigitalTwinProviderProps> = ({ childr
 
       toast({
         title: 'Success!',
-        description: 'Digital twin deleted successfully.',
+        description: 'Your net twin has been deleted successfully.',
       });
     } catch (error: any) {
       toast({

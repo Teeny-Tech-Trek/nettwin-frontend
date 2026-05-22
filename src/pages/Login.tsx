@@ -184,7 +184,7 @@ const Login = () => {
               className="body-font text-sm leading-relaxed mt-4 max-w-md"
               style={{ color:"rgba(255,255,255,0.55)" }}
             >
-              Access your digital twin, visualize real-time data,
+              Access your net twin, visualize real-time data,
               and make smarter, data-driven decisions.
             </motion.p>
           </div>
@@ -310,7 +310,7 @@ const Login = () => {
               {/* The image - CONSTRAINED so it doesn't overflow */}
               <img
                 src={CityIllustration}
-                alt="Digital twin city illustration"
+                alt="net twin city illustration"
                 className="relative z-10 w-full max-w-[380px] h-auto object-contain select-none pointer-events-none"
                 draggable={false}
                 style={{
@@ -382,13 +382,9 @@ const Login = () => {
               >
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{
-                    background:"linear-gradient(135deg,rgba(30,20,55,0.8),rgba(50,30,90,0.8))",
-                    border:"1.5px solid rgba(168,85,247,0.50)",
-                    boxShadow:"0 0 24px rgba(139,92,246,0.45), inset 0 0 12px rgba(168,85,247,0.20)",
-                  }}
+                  
                 >
-                  <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="logo"
+                  <img src="/logo.png" alt="logo"
                     className="w-full h-full object-contain p-2"
                     draggable={false}/>
                 </div>

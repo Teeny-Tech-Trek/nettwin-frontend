@@ -83,7 +83,7 @@ function getInitials(name: string | undefined): string {
 
 /** Build the same persona prompt the old success screen produced. Identical output. */
 function generatePersona(data: DigitalTwinProfile): string {
-  return `You are the digital twin of ${data.identity.name}, ${data.identity.role}${
+  return `You are the net twin of ${data.identity.name}, ${data.identity.role}${
     data.businesses?.[0]?.name ? ` at ${data.businesses[0].name}` : ''
   }.
 
@@ -207,9 +207,8 @@ export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) 
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <Crown className="w-4 h-4 text-cyan-300" />
                     <span className="text-xs sm:text-sm font-medium text-cyan-300 uppercase tracking-wider">
-                      Your Digital Twin
+                      Your Net Twin
                     </span>
                   </div>
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 break-words">

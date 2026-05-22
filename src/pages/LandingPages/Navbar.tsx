@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // ── apni logo image yahan import karo ──
 // import logoImg from "@/Images/your-logo.png";
@@ -9,6 +10,8 @@ import { useState, useEffect } from "react";
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -16,12 +19,49 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navLinks: Array<{ name: string; href: string; active?: boolean }> = [
-    { name: "Home", href: "#home", active: true },
-    { name: "Features", href: "#features" },
-    { name: "Preview", href: "#preview" },
-    { name: "CTA", href: "#cta" },
+  // href is `/#section` so right-click → open in new tab still resolves
+  // to the home page anchor. We intercept clicks to keep navigation
+  // inside the SPA (no full reload) and to handle the cross-page case:
+  // when the user is on /login or /signup, plain `#features` anchors
+  // do nothing because those section IDs don't exist on those routes —
+  // we need to navigate to `/` first and then scroll.
+  const navLinks: Array<{ name: string; href: string; hash: string; active?: boolean }> = [
+    { name: "Home", href: "/#home", hash: "home", active: true },
+    { name: "Features", href: "/#features", hash: "features" },
+    // { name: "Preview", href: "/#preview", hash: "preview" },
+    { name: "CTA", href: "/#cta", hash: "cta" },
   ];
+
+  // Scroll an element into view by id, accounting for the floating
+  // navbar's height with `scroll-margin-top` not always being present
+  // on each section. Falls back to `scrollIntoView` so old browsers
+  // still get *something*.
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Single click handler used by both desktop and mobile nav links.
+  // Behavior:
+  //   • Already on `/` → smooth-scroll to the section in place.
+  //   • Elsewhere (e.g. /login, /signup, /chatbot/:id) → navigate to
+  //     `/` with the hash set; HomeAllPage's hash-scroll effect picks
+  //     it up after the page mounts and scrolls there.
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    hash: string,
+  ) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+    if (location.pathname === "/") {
+      // Update the URL hash without a history push spam, then scroll.
+      window.history.replaceState(null, "", `/#${hash}`);
+      scrollToSection(hash);
+    } else {
+      navigate(`/#${hash}`);
+    }
+  };
 
   return (
     <>
@@ -90,38 +130,22 @@ const Navbar = () => {
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: -3 }}
                   whileTap={{ scale: 0.95 }}
-                  className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0"
+                  className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0"
                   style={{
                     background:
                       "linear-gradient(135deg, #0a1f3d 0%, #102a4e 50%, #0a1f3d 100%)",
-                    border: "1.5px solid rgba(34,211,238,0.4)",
+                    // border: "1.5px solid rgba(34,211,238,0.4)",
                     boxShadow:
                       "0 0 20px rgba(34,211,238,0.35), inset 0 0 12px rgba(34,211,238,0.15)",
                   }}
                 >
                   {/* If using your own logo: */}
-                      <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logo.png" alt="NetTwin" className="w-full h-full object-cover rounded-full" />
+                      <img src="/logo.png" alt="NetTwin" className="w-full h-full object-cover scale-75 rounded-full" />
                       {/* Otherwise the SVG below is a placeholder that matches the image. */}
                  
-                  <TwinSilhouettes />
+                  {/* <TwinSilhouettes /> */}
                   {/* Animated ring glow */}
-                  <motion.div
-                    animate={{
-                      opacity: [0.4, 0.7, 0.4],
-                      scale: [1, 1.15, 1],
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    style={{
-                      background:
-                        "radial-gradient(circle, rgba(34,211,238,0.25) 0%, transparent 70%)",
-                      filter: "blur(8px)",
-                    }}
-                  />
+                 
                 </motion.div>
 
                 {/* Brand text */}
@@ -163,6 +187,7 @@ const Navbar = () => {
                   <motion.a
                     key={link.name}
                     href={link.href}
+                    onClick={(e) => handleNavClick(e, link.hash)}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
@@ -204,6 +229,10 @@ const Navbar = () => {
               >
                 <motion.a
                   href="/signup"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/signup");
+                  }}
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
                   className="px-6 py-2.5 rounded-full text-[15px] font-medium text-white transition-all"
@@ -217,6 +246,10 @@ const Navbar = () => {
 
                 <motion.a
                   href="/login"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/login");
+                  }}
                   whileHover={{
                     scale: 1.04,
                     boxShadow: "0 0 30px rgba(59,130,246,0.55)",
@@ -281,7 +314,7 @@ const Navbar = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.06 }}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={(e) => handleNavClick(e, link.hash)}
                       className="px-4 py-3 text-base font-medium text-white/80 hover:text-white rounded-xl transition-all flex items-center justify-between"
                       style={{
                         background: link.active
@@ -318,6 +351,11 @@ const Navbar = () => {
                   >
                     <a
                       href="/signup"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setMobileMenuOpen(false);
+                        navigate("/signup");
+                      }}
                       className="w-full text-center py-3 rounded-xl text-[15px] font-medium text-white"
                       style={{
                         background: "rgba(15,23,42,0.6)",
@@ -328,6 +366,11 @@ const Navbar = () => {
                     </a>
                     <a
                       href="/login"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setMobileMenuOpen(false);
+                        navigate("/login");
+                      }}
                       className="w-full text-center py-3 rounded-xl text-[15px] font-semibold text-white"
                       style={{
                         background:

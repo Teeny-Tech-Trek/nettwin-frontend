@@ -33,7 +33,7 @@ export const Step8Networking = ({ data, onChange }: Step8NetworkingProps) => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Networking Goals</h2>
-        <p className="text-muted-foreground">How should your digital twin engage with others?</p>
+        <p className="text-muted-foreground">How should your net twin engage with others?</p>
       </div>
 
       <div className="space-y-4">

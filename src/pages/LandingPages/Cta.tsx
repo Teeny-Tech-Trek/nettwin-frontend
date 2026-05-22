@@ -236,7 +236,7 @@ const CTASection = () => {
                 </span>
 
                 <span className="flex-1 text-center text-white font-bold text-sm sm:text-lg leading-snug">
-                  Create Your Digital Twin
+                  Create Your Net Twin
                 </span>
 
                 <div
@@ -315,7 +315,7 @@ const CTASection = () => {
               >
                 <img
                   src={ctaImg}
-                  alt="Create Your Digital Twin"
+                  alt="Create Your Net Twin"
                   loading="eager"
                   decoding="sync"
                   draggable={false}

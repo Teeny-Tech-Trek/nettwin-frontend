@@ -100,7 +100,7 @@ const Landing = () => {
                 Your AI-Powered
                 <br />
                 <span className="text-white">
-                  Digital Twin
+                  Net Twin
                 </span>
               </motion.h1>
 
@@ -325,7 +325,7 @@ const FeaturesSection = () => {
     {
       icon: Bot,
       title: "AI-Powered Intelligence",
-      description: "Your digital twin learns your communication style, expertise, and personality to represent you authentically."
+      description: "Your net twin learns your communication style, expertise, and personality to represent you authentically."
     },
     {
       icon: QrCode,
@@ -335,7 +335,7 @@ const FeaturesSection = () => {
     {
       icon: Sparkles,
       title: "24/7 Availability",
-      description: "Never miss an opportunity. Your digital twin is always available to engage with potential clients."
+      description: "Never miss an opportunity. Your net twin is always available to engage with potential clients."
     },
     {
       icon: Shield,
@@ -448,7 +448,7 @@ const PreviewSection = () => {
           >
             <h3 className="text-4xl font-bold text-white">Intuitive Dashboard</h3>
             <p className="text-xl text-slate-400 leading-relaxed">
-              Manage all your digital twins from one beautiful interface. Track conversations, 
+              Manage all your net twins from one beautiful interface. Track conversations, 
               generate QR codes, and monitor engagement with ease.
             </p>
             <ul className="space-y-4">
@@ -551,13 +551,13 @@ const CTASection = () => {
               Ready to Get Started?
             </h2>
             <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
-              Join thousands of professionals using Digital Twin to scale their presence
+              Join thousands of professionals using net Twin to scale their presence
             </p>
             <Button 
               size="lg" 
               className="rounded-full text-lg px-12 py-8 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-2xl shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-105 transition-all duration-500 font-bold"
             >
-              Create Your Digital Twin
+              Create Your Net Twin
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </div>
