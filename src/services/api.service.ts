@@ -79,8 +79,19 @@ export const authService = {
 };
 
 // ==================== DIGITAL TWIN SERVICES ====================
+//
+// The create/get/delete endpoints save the structured DigitalTwin in Mongo
+// AND mirror the data to the AI backend (portfolio-chatbot-backend) so the
+// hybrid-RAG chatbot has an up-to-date index. That mirroring happens server
+// side — no frontend changes needed.
+//
+// The /ingest/* endpoints below are new and feed the AI engine with
+// unstructured sources (resume file, website URL) that the structured
+// wizard form can't capture. They return a `jobId` that the dashboard
+// polls until ingestion is "ready".
 export const digitalTwinService = {
-  // Create digital twin
+  // Create or update the user's single twin (upsert keyed on user id).
+  // Also kicks off an AI-backend profile sync on the server side.
   create: async (data: any) => {
     const response = await axiosInstance.post('/digital-twin/create', data);
     return response.data;
@@ -92,22 +103,112 @@ export const digitalTwinService = {
     return response.data;
   },
 
-  // Get public digital twin
+  // Get public digital twin (for the QR-code landing chatbot).
   getPublic: async (twinId: string) => {
     const response = await axiosInstance.get(`/digital-twin/public/${twinId}`);
     return response.data;
   },
 
-  // Update specific section
+  // Patch one section of the twin (the backend route is PATCH
+  // /digital-twin/section with `{ section, data }` in the body — the URL
+  // used to interpolate the section name, which never matched the route).
   updateSection: async (section: string, data: any) => {
-    const response = await axiosInstance.patch(`/digital-twin/update/${section}`, data);
+    const response = await axiosInstance.patch('/digital-twin/section', {
+      section,
+      data,
+    });
     return response.data;
   },
 
-  // Delete the user's single twin.
+  // Delete the user's single twin. Also tears down the AI-backend tenant
+  // (FAISS files + Neo4j nodes) on the server side.
   delete: async () => {
     const response = await axiosInstance.delete('/digital-twin/delete');
     return response.data;
+  },
+
+  // ────────────── AI-engine source ingestion ──────────────
+  // Upload a resume (PDF / DOCX / TXT). Returns { jobId, tenantId }. The
+  // AI worker extracts → chunks → embeds → indexes. Poll
+  // /ingestion-status (or /jobs/:jobId) until status === "ready".
+  ingestResume: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosInstance.post(
+      '/digital-twin/ingest/resume',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return response.data as {
+      success: boolean;
+      jobId: string;
+      tenantId: string;
+      message?: string;
+    };
+  },
+
+  // Kick off a same-origin BFS crawl of a website URL. If `url` is empty,
+  // the backend falls back to `twin.links.website` / `twin.links.portfolio`.
+  ingestWebsite: async (opts: { url?: string; maxPages?: number; maxDepth?: number }) => {
+    const response = await axiosInstance.post('/digital-twin/ingest/website', opts);
+    return response.data as {
+      success: boolean;
+      jobId: string;
+      tenantId: string;
+      url: string;
+    };
+  },
+
+  // Per-source ingestion status block. Returns a snapshot keyed by source
+  // type — useful for "Resume: ready • Website: indexing • Profile: ready"
+  // UI on the dashboard.
+  //
+  // Also returns `notice` — set to "sent" exactly once when this poll is
+  // the one that flipped the twin to ready and triggered the welcome
+  // email. The dashboard uses this to flash a success toast.
+  ingestionStatus: async () => {
+    const response = await axiosInstance.get('/digital-twin/ingestion-status');
+    return response.data as {
+      success: boolean;
+      notice?: 'sent' | 'previously-sent' | 'dry-run' | null;
+      data: {
+        tenant_id: string;
+        overall_status: 'empty' | 'partial' | 'ready';
+        resume?: { state: string; chunks?: number; updated_at?: string };
+        website?: { state: string; chunks?: number; updated_at?: string; pages_crawled?: number };
+        profile?: { state: string; chunks?: number; updated_at?: string };
+        ready_sources: string[];
+        detail: Record<string, unknown>;
+      };
+    };
+  },
+
+  // Single-job progress (used to drive the "embedding… 60%" UI).
+  jobStatus: async (jobId: string) => {
+    const response = await axiosInstance.get(`/digital-twin/jobs/${jobId}`);
+    return response.data as {
+      success: boolean;
+      data: {
+        job_id: string;
+        tenant_id: string;
+        kind: 'resume' | 'website' | 'profile';
+        status: 'queued' | 'running' | 'done' | 'failed';
+        stage: string;
+        progress_pct: number;
+        error?: string | null;
+      };
+    };
+  },
+
+  // Force a re-push of the structured profile to the AI engine. Useful
+  // when the AI backend was down during a save, or after a model upgrade.
+  resync: async () => {
+    const response = await axiosInstance.post('/digital-twin/resync');
+    return response.data as {
+      success: boolean;
+      jobId: string;
+      tenantId: string;
+    };
   },
 };
 

@@ -36,6 +36,8 @@ import {
   GraduationCap,
   Award,
   LinkIcon,
+  Loader2,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -221,6 +223,35 @@ export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) 
                       “{data.identity.tagline}”
                     </p>
                   )}
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* ────────────────── IN-PROGRESS / EMAIL NOTICE ──────────────────
+              The structured twin is saved instantly, but the AI engine still
+              has to embed + index the profile (and any resume/website you
+              add) in the background. We tell the user right here that we'll
+              email them when it's all ready, instead of letting them stare
+              at a "ready" page and wonder why the chatbot is empty. */}
+          <motion.div variants={item}>
+            <Card className="p-5 sm:p-6 bg-cyan-500/10 border-cyan-500/30 backdrop-blur-sm">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 animate-spin" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-semibold text-white mb-1">
+                    Generating your AI twin in the background
+                  </h3>
+                  <p className="text-xs sm:text-sm text-cyan-100/90 leading-relaxed mb-2 sm:mb-3">
+                    Your profile is saved. We're indexing it now so the chatbot answers from your real data —
+                    this usually takes a minute or two. You don't have to wait here.
+                  </p>
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-cyan-200 font-medium">
+                    <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    We'll email you the moment it's ready.
+                  </div>
                 </div>
               </div>
             </Card>

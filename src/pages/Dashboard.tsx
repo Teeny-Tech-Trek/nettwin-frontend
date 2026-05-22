@@ -1477,6 +1477,7 @@ import { useToast } from "@/hooks/use-toast";
 import { authService, leadService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SourcesPanel } from '@/components/SourcesPanel';
 // Pencil = Edit Twin CTA shown when the user already owns a twin.
 // Eye    = View Twin (public chatbot link).
 import { Pencil, Eye } from 'lucide-react';
@@ -2388,6 +2389,21 @@ const Dashboard = () => {
                   </motion.div>
                 ))}
               </div>
+
+              {/* AI Knowledge Sources — resume + website uploads + live status
+                  for the AI engine that powers the public chatbot. Only renders
+                  when the user has a twin (otherwise the sources have no tenant
+                  to bind to). */}
+              {twins.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="mb-8 sm:mb-12"
+                >
+                  <SourcesPanel />
+                </motion.div>
+              )}
 
               {/* Leads Section */}
               <motion.div
