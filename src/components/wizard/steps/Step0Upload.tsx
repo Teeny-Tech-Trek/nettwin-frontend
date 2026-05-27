@@ -35,7 +35,8 @@ const STAGE_LABELS: Record<string, string> = {
   done: "Ready",
 };
 
-const POLL_INTERVAL_MS = 1500;
+const POLL_INTERVAL_MS = 5000;
+const POLL_MAX_INTERVAL_MS = 20000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes per source
 
 const initialTracker: SourceTracker = { state: "idle", progress: 0, stage: "", error: null };
@@ -53,25 +54,51 @@ export const Step0Upload = ({ onComplete }: Step0UploadProps) => {
 
   const pollJob = async (jobId: string, setTracker: (t: SourceTracker) => void) => {
     const startedAt = Date.now();
+    let delayMs = POLL_INTERVAL_MS;
+    console.debug(`[Step0Upload] polling started for job=${jobId}`);
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      if (cancelled.current) return null;
+      if (cancelled.current) {
+        console.debug(`[Step0Upload] polling stopped on unmount for job=${jobId}`);
+        return null;
+      }
       if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+        console.debug(`[Step0Upload] polling timed out for job=${jobId}`);
         throw new Error("Taking too long — please try again or skip for now.");
       }
-      const res = await digitalTwinService.jobStatus(jobId);
-      const job = res?.data;
-      if (job) {
-        setTracker({
-          state: "processing",
-          progress: job.progress_pct || 0,
-          stage: job.stage || "running",
-          error: null,
-        });
-        if (job.status === "done") return true;
-        if (job.status === "failed") throw new Error(job.error || "Ingestion failed");
+      try {
+        const res = await digitalTwinService.jobStatus(jobId);
+        const job = res?.data;
+        if (job) {
+          console.debug(
+            `[Step0Upload] job=${jobId} status=${job.status} stage=${job.stage} progress=${job.progress_pct ?? 0}`
+          );
+          setTracker({
+            state: "processing",
+            progress: job.progress_pct || 0,
+            stage: job.stage || "running",
+            error: null,
+          });
+          delayMs = POLL_INTERVAL_MS;
+          if (job.status === "done" || job.status === "completed") {
+            console.debug(`[Step0Upload] polling completed for job=${jobId}`);
+            return true;
+          }
+          if (job.status === "failed" || job.status === "cancelled") {
+            console.debug(`[Step0Upload] polling hit terminal failure for job=${jobId}`);
+            throw new Error(job.error || "Ingestion failed");
+          }
+        }
+      } catch (err: any) {
+        if (err?.response?.status === 429) {
+          delayMs = Math.min(delayMs * 2, POLL_MAX_INTERVAL_MS);
+          console.debug(`[Step0Upload] polling backoff for job=${jobId} nextDelay=${delayMs}`);
+        } else {
+          console.debug(`[Step0Upload] polling failed for job=${jobId}: ${err?.message || err}`);
+          throw err;
+        }
       }
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      await new Promise((r) => setTimeout(r, delayMs));
     }
   };
 
@@ -119,26 +146,16 @@ export const Step0Upload = ({ onComplete }: Step0UploadProps) => {
 
       let extracted: any = {};
       try {
-        const profRes = await fetch("/api/digital-twin/extracted-profile", {
-          credentials: "include",
-          headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` },
-        });
-        const profJson = await profRes.json();
-        extracted = profJson?.data?.profile || {};
+        const profRes = await digitalTwinService.extractedProfile();
+        extracted = profRes?.data?.profile || {};
       } catch {
         // ignore — fall back to twin
       }
 
-      const merged: Partial<DigitalTwinProfile> = {
-        ...extracted,
-        ...(twin ? stripPlaceholders(twin) : {}),
-      };
-      // Re-apply extracted values for fields the twin doesn't already have non-empty.
-      for (const key of Object.keys(extracted)) {
-        const tVal = (merged as any)[key];
-        const eVal = extracted[key];
-        if (isEmpty(tVal) && !isEmpty(eVal)) (merged as any)[key] = eVal;
-      }
+      const merged = mergeProfiles(
+        twin ? stripPlaceholders(twin) : {},
+        extracted
+      );
       onComplete(merged);
     } catch (err) {
       console.error(err);
@@ -370,4 +387,32 @@ function stripPlaceholders(twin: any): Partial<DigitalTwinProfile> {
   delete out.lastUpdated;
   delete out.aiReadyEmailedAt;
   return out;
+}
+
+function mergeProfiles(
+  twin: Partial<DigitalTwinProfile>,
+  extracted: Partial<DigitalTwinProfile>
+): Partial<DigitalTwinProfile> {
+  const merged: Partial<DigitalTwinProfile> = { ...twin };
+
+  for (const [key, value] of Object.entries(extracted)) {
+    if (Array.isArray(value)) {
+      (merged as any)[key] = value.length ? value : (merged as any)[key];
+      continue;
+    }
+
+    if (value && typeof value === "object") {
+      (merged as any)[key] = {
+        ...((merged as any)[key] || {}),
+        ...value,
+      };
+      continue;
+    }
+
+    if (!isEmpty(value)) {
+      (merged as any)[key] = value;
+    }
+  }
+
+  return merged;
 }
