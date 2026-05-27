@@ -31,6 +31,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Chatbot from "./pages/Chatbot";
 import Index from "./pages/Index";
@@ -79,6 +81,30 @@ const App = () => (
                 element={
                   <PublicLayout>
                     <Signup />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicLayout>
+                    <ForgotPassword />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicLayout>
+                    <ResetPassword />
+                  </PublicLayout>
+                }
+              />
+              <Route
+                path="/reset-password/:token"
+                element={
+                  <PublicLayout>
+                    <ResetPassword />
                   </PublicLayout>
                 }
               />

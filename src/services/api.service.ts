@@ -102,6 +102,18 @@ export const authService = {
     });
     return response.data;
   },
+
+  forgotPassword: async (email: string) => {
+    const response = await axiosInstance.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const response = await axiosInstance.post(`/auth/reset-password/${encodeURIComponent(token)}`, {
+      password,
+    });
+    return response.data;
+  },
 };
 
 // ==================== DIGITAL TWIN SERVICES ====================
@@ -218,10 +230,22 @@ export const digitalTwinService = {
         job_id: string;
         tenant_id: string;
         kind: 'resume' | 'website' | 'profile';
-        status: 'queued' | 'running' | 'done' | 'failed';
+        status: 'queued' | 'running' | 'done' | 'completed' | 'failed' | 'cancelled';
         stage: string;
         progress_pct: number;
         error?: string | null;
+      };
+    };
+  },
+
+  extractedProfile: async () => {
+    const response = await axiosInstance.get('/digital-twin/extracted-profile');
+    return response.data as {
+      success: boolean;
+      data: {
+        tenant_id: string;
+        profile: Partial<import('@/types/digitalTwin').DigitalTwinProfile>;
+        extracted: boolean;
       };
     };
   },

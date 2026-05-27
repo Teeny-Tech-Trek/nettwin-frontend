@@ -558,14 +558,18 @@ export const DigitalTwinWizard = () => {
   useEffect(() => {
     if (digitalTwin) {
       const { _id, isActive, createdAt, lastUpdated, ...profileData } = digitalTwin;
+      const sanitizedProfile = stripDraftPlaceholders(profileData);
       setData({
         ...INITIAL_DATA,
-        ...profileData,
+        ...sanitizedProfile,
       });
-      // User already has a twin — they're editing, skip the quick-start.
-      setShowQuickStart(false);
+      // A draft twin is only an onboarding anchor for ingestion. It should
+      // still behave like "no completed twin yet" so the user can keep using
+      // the upload-first quick-start after refreshes.
+      setShowQuickStart(isDraftTwin(profileData));
     } else {
       setData(INITIAL_DATA);
+      setShowQuickStart(true);
     }
   }, [digitalTwin]);
 
@@ -807,3 +811,26 @@ export const DigitalTwinWizard = () => {
     </div>
   );
 };
+
+function isDraftTwin(twin: Partial<DigitalTwinProfile> | null | undefined) {
+  return (
+    twin?.identity?.name === "Draft Twin" &&
+    twin?.identity?.role === "Draft" &&
+    typeof twin?.identity?.bio === "string" &&
+    twin.identity.bio.startsWith("This twin is being created")
+  );
+}
+
+function stripDraftPlaceholders<T extends Partial<DigitalTwinProfile>>(twin: T): T {
+  if (!isDraftTwin(twin)) return twin;
+
+  return {
+    ...twin,
+    identity: {
+      ...twin.identity,
+      name: "",
+      role: "",
+      bio: "",
+    },
+  };
+}
