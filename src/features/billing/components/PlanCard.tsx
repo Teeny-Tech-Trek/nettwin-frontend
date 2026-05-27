@@ -53,28 +53,42 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
         <div className="mt-2 flex items-baseline gap-1">
           <span className="text-3xl font-bold text-white">
-            {plan.price === 0 ? 'Free' : formatCurrency(plan.price, plan.currency)}
+            {plan.isContactOnly
+              ? 'Custom'
+              : plan.price === 0
+              ? 'Free'
+              : formatCurrency(plan.price, plan.currency)}
           </span>
-          {plan.price > 0 && (
+          {plan.price > 0 && !plan.isContactOnly && (
             <span className="text-sm text-slate-400">/ month</span>
           )}
         </div>
       </div>
 
       <ul className="space-y-2 mb-6">
+        {/* Hide twins/leads when unlimited so the card focuses on what
+            actually differs between plans (message quota). */}
+        {plan.twinsLimit !== -1 && (
+          <li className="flex items-start gap-2 text-sm text-slate-300">
+            <Check className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
+            {formatLimit(plan.twinsLimit, 'digital twin' + (plan.twinsLimit === 1 ? '' : 's'))}
+          </li>
+        )}
         <li className="flex items-start gap-2 text-sm text-slate-300">
           <Check className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
-          {formatLimit(plan.twinsLimit, 'digital twin' + (plan.twinsLimit === 1 ? '' : 's'))}
+          {plan.isContactOnly
+            ? 'Custom chatbot message volume'
+            : formatLimit(plan.messagesLimit, 'chatbot messages / month')}
         </li>
-        <li className="flex items-start gap-2 text-sm text-slate-300">
-          <Check className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
-          {formatLimit(plan.messagesLimit, 'chatbot messages / month')}
-        </li>
-        <li className="flex items-start gap-2 text-sm text-slate-300">
-          <Check className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
-          {formatLimit(plan.leadsLimit, 'leads captured')}
-        </li>
-        {plan.features?.slice(3).map((feature) => (
+        {plan.leadsLimit !== -1 && (
+          <li className="flex items-start gap-2 text-sm text-slate-300">
+            <Check className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
+            {formatLimit(plan.leadsLimit, 'leads captured')}
+          </li>
+        )}
+        {/* Render every feature beyond the first 3 default lines from the
+            backend. The backend hand-curates these per plan. */}
+        {plan.features?.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-sm text-slate-300">
             <Check className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
             {feature}
@@ -90,6 +104,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         onUpgradeSuccess={onUpgradeSuccess}
         userEmail={userEmail}
         userName={userName}
+        isContactOnly={plan.isContactOnly}
         className="w-full"
       />
     </div>

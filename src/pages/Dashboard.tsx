@@ -1157,6 +1157,8 @@ import { Pencil, Eye } from 'lucide-react';
 
 import DashboardView from '../components/DasboardUiView';
 import type { DigitalTwin, Lead, UserProfile, StatusCounts } from '../types/Dashboard';
+import { useBilling } from '@/features/billing/hooks/useBilling';
+import UpgradeRequiredModal from '@/features/billing/components/UpgradeRequiredModal';
 
 const Dashboard = () => {
   const { digitalTwin, isLoading, loadDigitalTwin, deleteTwin } = useDigitalTwin();
@@ -1183,6 +1185,33 @@ const Dashboard = () => {
   const [avatarCacheKey, setAvatarCacheKey] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFetched = useRef(false);
+
+  // Billing status drives the quota-exceeded upgrade modal. The hook does its
+  // own initial fetch; we just consume the result.
+  const { billingStatus } = useBilling();
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
+  // Show the upgrade modal once per browser session when the owner has hit
+  // their monthly message limit. The dismissal sticks across navigations
+  // (sessionStorage) so we don't pester them on every Dashboard return.
+  useEffect(() => {
+    if (!billingStatus) return;
+    const { messages } = billingStatus.usage;
+    const limit = messages.limit;
+    const hitLimit = limit !== -1 && limit > 0 && messages.used >= limit;
+    if (!hitLimit) return;
+    const dismissKey = `upgradeModalDismissed:${billingStatus.subscription.currentPeriodEnd || 'none'}`;
+    if (sessionStorage.getItem(dismissKey)) return;
+    setUpgradeModalOpen(true);
+  }, [billingStatus]);
+
+  const dismissUpgradeModal = () => {
+    if (billingStatus) {
+      const key = `upgradeModalDismissed:${billingStatus.subscription.currentPeriodEnd || 'none'}`;
+      sessionStorage.setItem(key, '1');
+    }
+    setUpgradeModalOpen(false);
+  };
 
   // Public URL used in the QR code and the "View Live" link.
   //   1. VITE_PUBLIC_APP_URL (deploy-time override, useful for previews)
@@ -1491,6 +1520,17 @@ const Dashboard = () => {
   const avatarSrc = getAvatarSrc();
 
   return (
+    <>
+    {billingStatus && (
+      <UpgradeRequiredModal
+        open={upgradeModalOpen}
+        onClose={dismissUpgradeModal}
+        planName={billingStatus.plan.name}
+        used={billingStatus.usage.messages.used}
+        limit={billingStatus.usage.messages.limit}
+        periodEnd={billingStatus.subscription.currentPeriodEnd}
+      />
+    )}
     <DashboardView
       // loading
       isLoading={isLoading}
@@ -1536,6 +1576,7 @@ const Dashboard = () => {
       // TODO: wire to your help/docs route or an explainer modal when ready.
       onLearnMore={() => { /* placeholder — no destructive action */ }}
     />
+    </>
   );
 };
 

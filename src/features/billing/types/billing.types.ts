@@ -19,6 +19,9 @@ export interface Plan {
   leadsLimit: number;
   features: string[];
   isPopular?: boolean;
+  // True for the Enterprise tier — UI renders a "Contact sales" CTA instead
+  // of the Razorpay flow.
+  isContactOnly?: boolean;
 }
 
 // ── Subscription ────────────────────────────────────────────────────────
@@ -34,6 +37,7 @@ export interface Subscription {
   status: SubscriptionStatus;
   isActive: boolean;
   centralCustomerId: string | null;
+  currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   lastSyncedAt: string | null;
   planId: string | null;
@@ -63,6 +67,7 @@ export interface BillingStatus {
     twinsLimit: number;
     messagesLimit: number;
     leadsLimit: number;
+    isContactOnly?: boolean;
   };
   subscription: Subscription;
   usage: Usage;
