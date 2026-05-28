@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { safeArray, safeText } from "@/utils/safeRender";
 
 interface Step7StoryProps {
   data: Story;
@@ -13,20 +14,24 @@ interface Step7StoryProps {
 
 export const Step7Story = ({ data, onChange }: Step7StoryProps) => {
   const [themeInput, setThemeInput] = useState("");
+  
+  // Ensure data and arrays are safe
+  const safeData = data ?? { mission: "", impact: "", themes: [] };
+  const themes = safeArray(safeData?.themes);
 
   const handleChange = (field: keyof Story, value: string | string[]) => {
-    onChange({ ...data, [field]: value });
+    onChange({ ...safeData, [field]: value });
   };
 
   const addTheme = () => {
-    if (themeInput.trim() && !data.themes.includes(themeInput.trim())) {
-      handleChange("themes", [...data.themes, themeInput.trim()]);
+    if (themeInput.trim() && !themes.includes(themeInput.trim())) {
+      handleChange("themes", [...themes, themeInput.trim()]);
       setThemeInput("");
     }
   };
 
   const removeTheme = (theme: string) => {
-    handleChange("themes", data.themes.filter((t) => t !== theme));
+    handleChange("themes", themes.filter((t) => t !== theme));
   };
 
   return (
@@ -40,7 +45,7 @@ export const Step7Story = ({ data, onChange }: Step7StoryProps) => {
         <div>
           <Label>Mission Statement</Label>
           <Textarea
-            value={data.mission}
+            value={safeText(safeData?.mission)}
             onChange={(e) => handleChange("mission", e.target.value)}
             placeholder="What drives you? What are you building toward?"
             className="mt-1.5 min-h-[100px]"
@@ -50,7 +55,7 @@ export const Step7Story = ({ data, onChange }: Step7StoryProps) => {
         <div>
           <Label>Impact & Legacy</Label>
           <Textarea
-            value={data.impact}
+            value={safeText(safeData?.impact)}
             onChange={(e) => handleChange("impact", e.target.value)}
             placeholder="What change do you want to create in the world?"
             className="mt-1.5 min-h-[100px]"
@@ -69,9 +74,9 @@ export const Step7Story = ({ data, onChange }: Step7StoryProps) => {
           <p className="text-sm text-muted-foreground mt-1">
             What patterns connect your work? What themes keep showing up?
           </p>
-          {data.themes.length > 0 && (
+          {Array.isArray(themes) && themes.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {data.themes.map((theme) => (
+              {themes.map((theme) => (
                 <Badge key={theme} variant="secondary">
                   {theme}
                   <button onClick={() => removeTheme(theme)} className="ml-2">

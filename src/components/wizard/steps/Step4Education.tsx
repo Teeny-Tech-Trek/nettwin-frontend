@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Education } from "@/types/digitalTwin";
 import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { safeArray, safeText } from "@/utils/safeRender";
 
 interface Step4EducationProps {
   data: Education[];
@@ -11,16 +12,19 @@ interface Step4EducationProps {
 }
 
 export const Step4Education = ({ data, onChange }: Step4EducationProps) => {
+  // Ensure data is always an array with safe defaults
+  const safeData = safeArray(data);
+
   const addEducation = () => {
-    onChange([...data, { institution: "", degree: "", year: "" }]);
+    onChange([...safeData, { institution: "", degree: "", year: "" }]);
   };
 
   const removeEducation = (index: number) => {
-    onChange(data.filter((_, i) => i !== index));
+    onChange(safeData.filter((_, i) => i !== index));
   };
 
   const updateEducation = (index: number, field: keyof Education, value: string) => {
-    const updated = [...data];
+    const updated = [...safeData];
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
   };
@@ -33,9 +37,9 @@ export const Step4Education = ({ data, onChange }: Step4EducationProps) => {
       </div>
 
       <div className="space-y-4">
-        {data.map((edu, index) => (
+        {safeData.map((edu, index) => (
           <Card key={index} className="p-6 relative">
-            {data.length > 1 && (
+            {safeData.length > 1 && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -50,7 +54,7 @@ export const Step4Education = ({ data, onChange }: Step4EducationProps) => {
               <div>
                 <Label>Institution *</Label>
                 <Input
-                  value={edu.institution}
+                  value={safeText(edu?.institution)}
                   onChange={(e) => updateEducation(index, "institution", e.target.value)}
                   placeholder="University or organization"
                   className="mt-1.5"
@@ -60,7 +64,7 @@ export const Step4Education = ({ data, onChange }: Step4EducationProps) => {
               <div>
                 <Label>Degree / Certification *</Label>
                 <Input
-                  value={edu.degree}
+                  value={safeText(edu?.degree)}
                   onChange={(e) => updateEducation(index, "degree", e.target.value)}
                   placeholder="e.g., B.S. Computer Science"
                   className="mt-1.5"
@@ -70,7 +74,7 @@ export const Step4Education = ({ data, onChange }: Step4EducationProps) => {
               <div>
                 <Label>Year *</Label>
                 <Input
-                  value={edu.year}
+                  value={safeText(edu?.year)}
                   onChange={(e) => updateEducation(index, "year", e.target.value)}
                   placeholder="e.g., 2018"
                   className="mt-1.5"

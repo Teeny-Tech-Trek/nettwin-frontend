@@ -359,10 +359,9 @@ import { ChevronLeft, ChevronRight, Sparkles, Loader2, User, ArrowLeft, Check } 
 import { toast } from "sonner";
 import { useDigitalTwin } from "@/contexts/DigitalTwinContext";
 import { useNavigate } from "react-router-dom";
-// Polished post-creation / post-edit screen. UX lives in SuccessScreen.tsx;
-// the wizard only orchestrates the flow.
 import { SuccessScreen } from "./wizard/SuccessScreen";
 import { Step0Upload } from "./wizard/steps/Step0Upload";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 const INITIAL_DATA: DigitalTwinProfile = {
   identity: { name: "", role: "", tagline: "", bio: "" },
@@ -672,7 +671,8 @@ export const DigitalTwinWizard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] py-6 sm:py-8 lg:py-12 px-4">
+    <ErrorBoundary context="DigitalTwinWizard">
+      <div className="min-h-screen bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] py-6 sm:py-8 lg:py-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Back Button */}
         <div className="mb-4 sm:mb-6">
@@ -809,6 +809,7 @@ export const DigitalTwinWizard = () => {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 };
 

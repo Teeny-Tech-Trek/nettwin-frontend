@@ -1,38 +1,42 @@
   import { Input } from "@/components/ui/input";
-  import { Label } from "@/components/ui/label";
-  import { Textarea } from "@/components/ui/textarea";
-  import { Button } from "@/components/ui/button";
-  import { Business } from "@/types/digitalTwin";
-  import { Plus, Trash2 } from "lucide-react";
-  import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Business } from "@/types/digitalTwin";
+import { Plus, Trash2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { safeJoin, safeArray, warnMalformedData } from "@/utils/safeRender";
 
-  interface Step2BusinessProps {
-    data: Business[];
-    onChange: (data: Business[]) => void;
-  }
+interface Step2BusinessProps {
+  data: Business[];
+  onChange: (data: Business[]) => void;
+}
 
-  export const Step2Business = ({ data, onChange }: Step2BusinessProps) => {
-    const addBusiness = () => {
-      onChange([
-        ...data,
-        { name: "", role: "", description: "", link: "", products: [], duration: "" },
-      ]);
-    };
+export const Step2Business = ({ data, onChange }: Step2BusinessProps) => {
+  // Ensure data is always an array with safe defaults
+  const safeData = safeArray(data);
 
-    const removeBusiness = (index: number) => {
-      onChange(data.filter((_, i) => i !== index));
-    };
+  const addBusiness = () => {
+    onChange([
+      ...safeData,
+      { name: "", role: "", description: "", link: "", products: [], duration: "" },
+    ]);
+  };
 
-    const updateBusiness = (index: number, field: keyof Business, value: string | string[]) => {
-      const updated = [...data];
-      updated[index] = { ...updated[index], [field]: value };
-      onChange(updated);
-    };
+  const removeBusiness = (index: number) => {
+    onChange(safeData.filter((_, i) => i !== index));
+  };
 
-    const handleProductsChange = (index: number, value: string) => {
-      const products = value.split(",").map((p) => p.trim()).filter(Boolean);
-      updateBusiness(index, "products", products);
-    };
+  const updateBusiness = (index: number, field: keyof Business, value: string | string[]) => {
+    const updated = [...safeData];
+    updated[index] = { ...updated[index], [field]: value };
+    onChange(updated);
+  };
+
+  const handleProductsChange = (index: number, value: string) => {
+    const products = value.split(",").map((p) => p.trim()).filter(Boolean);
+    updateBusiness(index, "products", products);
+  };
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -42,9 +46,9 @@
         </div>
 
         <div className="space-y-4">
-          {data.map((business, index) => (
+          {safeData.map((business, index) => (
             <Card key={index} className="p-6 relative">
-              {data.length > 1 && (
+              {safeData.length > 1 && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -60,7 +64,7 @@
                   <div>
                     <Label>Business Name *</Label>
                     <Input
-                      value={business.name}
+                      value={business?.name ?? ""}
                       onChange={(e) => updateBusiness(index, "name", e.target.value)}
                       placeholder="Company or venture name"
                       className="mt-1.5"
@@ -69,7 +73,7 @@
                   <div>
                     <Label>Your Role *</Label>
                     <Input
-                      value={business.role}
+                      value={business?.role ?? ""}
                       onChange={(e) => updateBusiness(index, "role", e.target.value)}
                       placeholder="e.g., Founder, Advisor, Investor"
                       className="mt-1.5"
@@ -80,7 +84,7 @@
                 <div>
                   <Label>Duration / Active Years</Label>
                   <Input
-                    value={business.duration || ""}
+                    value={business?.duration ?? ""}
                     onChange={(e) => updateBusiness(index, "duration", e.target.value)}
                     placeholder="e.g., 2020 - Present"
                     className="mt-1.5"
@@ -90,7 +94,7 @@
                 <div>
                   <Label>Description *</Label>
                   <Textarea
-                    value={business.description}
+                    value={business?.description ?? ""}
                     onChange={(e) => updateBusiness(index, "description", e.target.value)}
                     placeholder="What does this business do?"
                     className="mt-1.5"
@@ -100,7 +104,7 @@
                 <div>
                   <Label>Key Products/Offerings</Label>
                   <Input
-                    value={business.products.join(", ")}
+                    value={safeJoin(business?.products)}
                     onChange={(e) => handleProductsChange(index, e.target.value)}
                     placeholder="Comma-separated list"
                     className="mt-1.5"
@@ -110,7 +114,7 @@
                 <div>
                   <Label>Website or Link</Label>
                   <Input
-                    value={business.link}
+                    value={business?.link ?? ""}
                     onChange={(e) => updateBusiness(index, "link", e.target.value)}
                     placeholder="https://..."
                     className="mt-1.5"

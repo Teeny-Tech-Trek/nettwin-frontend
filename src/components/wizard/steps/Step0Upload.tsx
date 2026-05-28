@@ -396,22 +396,52 @@ function mergeProfiles(
   const merged: Partial<DigitalTwinProfile> = { ...twin };
 
   for (const [key, value] of Object.entries(extracted)) {
+    // Handle arrays with safe validation
     if (Array.isArray(value)) {
-      (merged as any)[key] = value.length ? value : (merged as any)[key];
+      // Ensure extracted array has valid elements and preserve type safety
+      const validatedArray = value.filter((item) => item !== null && item !== undefined);
+      (merged as any)[key] = validatedArray.length > 0 ? validatedArray : (merged as any)[key];
+      
+      // Log warnings in development for empty or malformed arrays
+      if (process.env.NODE_ENV === "development" && value.length > 0 && validatedArray.length === 0) {
+        console.warn(`[mergeProfiles] Array field "${key}" contained only null/undefined values:`, value);
+      }
       continue;
     }
 
-    if (value && typeof value === "object") {
-      (merged as any)[key] = {
-        ...((merged as any)[key] || {}),
-        ...value,
-      };
+    // Handle nested objects safely - preserve existing structure if extracted is empty
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const existingObject = (merged as any)[key] || {};
+      const mergedObject = { ...existingObject };
+      
+      // Safely merge object properties, validating nested arrays
+      for (const [objKey, objValue] of Object.entries(value)) {
+        if (Array.isArray(objValue)) {
+          // Validate nested arrays in objects
+          const validatedNestedArray = objValue.filter((item) => item !== null && item !== undefined);
+          mergedObject[objKey] = validatedNestedArray.length > 0 ? validatedNestedArray : (existingObject[objKey] || []);
+          
+          if (process.env.NODE_ENV === "development" && objValue.length > 0 && validatedNestedArray.length === 0) {
+            console.warn(`[mergeProfiles] Nested array field "${key}.${objKey}" contained only null/undefined values:`, objValue);
+          }
+        } else if (!isEmpty(objValue)) {
+          mergedObject[objKey] = objValue;
+        }
+      }
+      
+      (merged as any)[key] = mergedObject;
       continue;
     }
 
+    // Handle primitive values
     if (!isEmpty(value)) {
       (merged as any)[key] = value;
     }
+  }
+
+  // Log final merged state in development
+  if (process.env.NODE_ENV === "development") {
+    console.log("[mergeProfiles] Merge complete. Merged profile:", merged);
   }
 
   return merged;

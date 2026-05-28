@@ -4,9 +4,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { safeArray, safeText } from "@/utils/safeRender";
 
 interface SkillsData {
-   list: string[];
+  list: string[];
   coreDomains: string;
   signatureStrengths: string;
 }
@@ -18,16 +19,20 @@ interface Step5SkillsProps {
 
 export const Step5Skills = ({ data, onChange }: Step5SkillsProps) => {
   const [skillInput, setSkillInput] = useState("");
+  
+  // Ensure data and arrays are safe
+  const safeData = data ?? { list: [], coreDomains: "", signatureStrengths: "" };
+  const skillsList = safeArray(safeData?.list);
 
   const addSkill = () => {
-    if (skillInput.trim() && !data.list.includes(skillInput.trim())) {
-      onChange({ ...data, list: [...data.list, skillInput.trim()] });
+    if (skillInput.trim() && !skillsList.includes(skillInput.trim())) {
+      onChange({ ...safeData, list: [...skillsList, skillInput.trim()] });
       setSkillInput("");
     }
   };
 
   const removeSkill = (skill: string) => {
-    onChange({ ...data, list: data.list.filter((s) => s !== skill) });
+    onChange({ ...safeData, list: skillsList.filter((s) => s !== skill) });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -63,9 +68,9 @@ export const Step5Skills = ({ data, onChange }: Step5SkillsProps) => {
           </p>
         </div>
 
-        {data.list.length > 0 && (
+        {Array.isArray(skillsList) && skillsList.length > 0 && (
           <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
-            {data.list.map((skill) => (
+            {skillsList.map((skill) => (
               <Badge key={skill} variant="secondary" className="text-sm px-3 py-1.5">
                 {skill}
                 <button
@@ -84,8 +89,8 @@ export const Step5Skills = ({ data, onChange }: Step5SkillsProps) => {
           <Textarea
             placeholder="What areas do you specialize in?"
             className="mt-1.5 min-h-[80px]"
-            value={data.coreDomains}
-            onChange={(e) => onChange({ ...data, coreDomains: e.target.value })}
+            value={safeText(safeData?.coreDomains)}
+            onChange={(e) => onChange({ ...safeData, coreDomains: e.target.value })}
           />
         </div>
 
@@ -94,8 +99,8 @@ export const Step5Skills = ({ data, onChange }: Step5SkillsProps) => {
           <Textarea
             placeholder="What unique strengths do you bring?"
             className="mt-1.5 min-h-[80px]"
-            value={data.signatureStrengths}
-            onChange={(e) => onChange({ ...data, signatureStrengths: e.target.value })}
+            value={safeText(safeData?.signatureStrengths)}
+            onChange={(e) => onChange({ ...safeData, signatureStrengths: e.target.value })}
           />
         </div>
       </div>

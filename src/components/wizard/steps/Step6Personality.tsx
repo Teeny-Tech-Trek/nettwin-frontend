@@ -5,6 +5,7 @@ import { Personality } from "@/types/digitalTwin";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { safeArray, safeText } from "@/utils/safeRender";
 
 interface Step6PersonalityProps {
   data: Personality;
@@ -14,31 +15,36 @@ interface Step6PersonalityProps {
 export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
   const [traitInput, setTraitInput] = useState("");
   const [valueInput, setValueInput] = useState("");
+  
+  // Ensure data and arrays are safe
+  const safeData = data ?? { traits: [], values: [], leadership_style: "", decision_style: "", tone: "", archetype: "" };
+  const traits = safeArray(safeData?.traits);
+  const values = safeArray(safeData?.values);
 
   const handleChange = (field: keyof Personality, value: string | string[]) => {
-    onChange({ ...data, [field]: value });
+    onChange({ ...safeData, [field]: value });
   };
 
   const addTrait = () => {
-    if (traitInput.trim() && !data.traits.includes(traitInput.trim())) {
-      handleChange("traits", [...data.traits, traitInput.trim()]);
+    if (traitInput.trim() && !traits.includes(traitInput.trim())) {
+      handleChange("traits", [...traits, traitInput.trim()]);
       setTraitInput("");
     }
   };
 
   const removeTrait = (trait: string) => {
-    handleChange("traits", data.traits.filter((t) => t !== trait));
+    handleChange("traits", traits.filter((t) => t !== trait));
   };
 
   const addValue = () => {
-    if (valueInput.trim() && !data.values.includes(valueInput.trim())) {
-      handleChange("values", [...data.values, valueInput.trim()]);
+    if (valueInput.trim() && !values.includes(valueInput.trim())) {
+      handleChange("values", [...values, valueInput.trim()]);
       setValueInput("");
     }
   };
 
   const removeValue = (value: string) => {
-    handleChange("values", data.values.filter((v) => v !== value));
+    handleChange("values", values.filter((v) => v !== value));
   };
 
   return (
@@ -58,9 +64,9 @@ export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
             placeholder="Add traits (press Enter)"
             className="mt-1.5"
           />
-          {data.traits.length > 0 && (
+          {Array.isArray(traits) && traits.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {data.traits.map((trait) => (
+              {traits.map((trait) => (
                 <Badge key={trait} variant="secondary">
                   {trait}
                   <button onClick={() => removeTrait(trait)} className="ml-2">
@@ -75,7 +81,7 @@ export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
         <div>
           <Label>Leadership Style</Label>
           <Input
-            value={data.leadership_style}
+            value={safeText(safeData?.leadership_style)}
             onChange={(e) => handleChange("leadership_style", e.target.value)}
             placeholder="e.g., Visionary, Hands-on, Mentor"
             className="mt-1.5"
@@ -85,7 +91,7 @@ export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
         <div>
           <Label>Decision-Making Style</Label>
           <Input
-            value={data.decision_style}
+            value={safeText(safeData?.decision_style)}
             onChange={(e) => handleChange("decision_style", e.target.value)}
             placeholder="e.g., Data-driven, Intuitive, Collaborative"
             className="mt-1.5"
@@ -95,7 +101,7 @@ export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
         <div>
           <Label>Communication Tone</Label>
           <Input
-            value={data.tone}
+            value={safeText(safeData?.tone)}
             onChange={(e) => handleChange("tone", e.target.value)}
             placeholder="e.g., Friendly, Confident, Consultative"
             className="mt-1.5"
@@ -105,7 +111,7 @@ export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
         <div>
           <Label>Personal Archetype</Label>
           <Input
-            value={data.archetype}
+            value={safeText(safeData?.archetype)}
             onChange={(e) => handleChange("archetype", e.target.value)}
             placeholder="e.g., Visionary, Architect, Explorer, Strategist"
             className="mt-1.5"
@@ -121,9 +127,9 @@ export const Step6Personality = ({ data, onChange }: Step6PersonalityProps) => {
             placeholder="Add values (press Enter)"
             className="mt-1.5"
           />
-          {data.values.length > 0 && (
+          {Array.isArray(values) && values.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {data.values.map((value) => (
+              {values.map((value) => (
                 <Badge key={value} variant="secondary">
                   {value}
                   <button onClick={() => removeValue(value)} className="ml-2">

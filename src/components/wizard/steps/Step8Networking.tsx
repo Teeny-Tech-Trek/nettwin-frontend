@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { safeArray, safeText } from "@/utils/safeRender";
 
 interface Step8NetworkingProps {
   data: Networking;
@@ -13,20 +14,24 @@ interface Step8NetworkingProps {
 
 export const Step8Networking = ({ data, onChange }: Step8NetworkingProps) => {
   const [boundaryInput, setBoundaryInput] = useState("");
+  
+  // Ensure data and arrays are safe
+  const safeData = data ?? { audience: "", intent: "", boundaries: [] };
+  const boundaries = safeArray(safeData?.boundaries);
 
   const handleChange = (field: keyof Networking, value: string | string[]) => {
-    onChange({ ...data, [field]: value });
+    onChange({ ...safeData, [field]: value });
   };
 
   const addBoundary = () => {
-    if (boundaryInput.trim() && !data.boundaries.includes(boundaryInput.trim())) {
-      handleChange("boundaries", [...data.boundaries, boundaryInput.trim()]);
+    if (boundaryInput.trim() && !boundaries.includes(boundaryInput.trim())) {
+      handleChange("boundaries", [...boundaries, boundaryInput.trim()]);
       setBoundaryInput("");
     }
   };
 
   const removeBoundary = (boundary: string) => {
-    handleChange("boundaries", data.boundaries.filter((b) => b !== boundary));
+    handleChange("boundaries", boundaries.filter((b) => b !== boundary));
   };
 
   return (
@@ -40,7 +45,7 @@ export const Step8Networking = ({ data, onChange }: Step8NetworkingProps) => {
         <div>
           <Label>Target Audience</Label>
           <Textarea
-            value={data.audience}
+            value={safeText(safeData?.audience)}
             onChange={(e) => handleChange("audience", e.target.value)}
             placeholder="Who should your twin connect with? (e.g., clients, founders, investors, recruiters)"
             className="mt-1.5 min-h-[80px]"
@@ -50,7 +55,7 @@ export const Step8Networking = ({ data, onChange }: Step8NetworkingProps) => {
         <div>
           <Label>Primary Intent</Label>
           <Textarea
-            value={data.intent}
+            value={safeText(safeData?.intent)}
             onChange={(e) => handleChange("intent", e.target.value)}
             placeholder="What's the goal? (e.g., networking, collaboration, visibility, pitching)"
             className="mt-1.5 min-h-[80px]"
@@ -69,9 +74,9 @@ export const Step8Networking = ({ data, onChange }: Step8NetworkingProps) => {
           <p className="text-sm text-muted-foreground mt-1">
             What topics or areas should your twin not discuss?
           </p>
-          {data.boundaries.length > 0 && (
+          {Array.isArray(boundaries) && boundaries.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {data.boundaries.map((boundary) => (
+              {boundaries.map((boundary) => (
                 <Badge key={boundary} variant="secondary">
                   {boundary}
                   <button onClick={() => removeBoundary(boundary)} className="ml-2">
