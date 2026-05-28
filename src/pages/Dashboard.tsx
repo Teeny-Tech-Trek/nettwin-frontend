@@ -1446,6 +1446,30 @@ const Dashboard = () => {
     }
   }, []);
 
+  // Trigger an explicit resync of the twin to the AI engine. Used by the
+  // "AI engine not in sync" banner on the twin card. The backend stamps
+  // aiSyncStatus on the twin doc; we reload after to refresh the banner.
+  const [isResyncing, setIsResyncing] = useState(false);
+  const handleResync = useCallback(async () => {
+    setIsResyncing(true);
+    try {
+      await digitalTwinService.resync();
+      await loadDigitalTwin();
+      toast({
+        title: 'Chatbot updated',
+        description: 'Your latest profile is now live. Refresh your chat to see rich answers.',
+      });
+    } catch (error: any) {
+      toast({
+        title: "Couldn't sync",
+        description: error?.response?.data?.message || error.message || 'Please try again in a minute.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResyncing(false);
+    }
+  }, [loadDigitalTwin, toast]);
+
   // Single-twin delete. Context's deleteTwin nulls the cached digitalTwin AND
   // dispatches twin:saved so any other surface refreshes its create-vs-edit
   // decision.
@@ -1570,6 +1594,8 @@ const Dashboard = () => {
       onCreateTwin={() => navigate('/wizard')}
       onEditTwin={() => navigate('/wizard')}
       onDeleteTwin={handleDelete}
+      onResync={handleResync}
+      isResyncing={isResyncing}
       onDownloadQR={downloadQR}
       onLeadStatusChange={handleLeadStatusChange}
       onLogout={handleLogout}
