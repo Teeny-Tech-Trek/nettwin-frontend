@@ -2,6 +2,7 @@
   import { Label } from "@/components/ui/label";
   import { Textarea } from "@/components/ui/textarea";
   import { Identity } from "@/types/digitalTwin";
+  import { safeText } from "@/utils/safeRender";
 
   interface Step1IdentityProps {
     data: Identity;
@@ -9,8 +10,11 @@
   }
 
   export const Step1Identity = ({ data, onChange }: Step1IdentityProps) => {
+    // Ensure data is safe
+    const safeData = data ?? { name: "", role: "", tagline: "", bio: "" };
+    
     const handleChange = (field: keyof Identity, value: string) => {
-      onChange({ ...data, [field]: value });
+      onChange({ ...safeData, [field]: value });
     };
 
     return (
@@ -25,7 +29,7 @@
             <Label htmlFor="name">Full Name *</Label>
             <Input
               id="name"
-              value={data.name}
+              value={safeText(safeData?.name)}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="e.g., Alex Johnson"
               className="mt-1.5"
@@ -37,7 +41,7 @@
             <Label htmlFor="role">Current Role / Professional Title *</Label>
             <Input
               id="role"
-              value={data.role}
+              value={safeText(safeData?.role)}
               onChange={(e) => handleChange("role", e.target.value)}
               placeholder="e.g., Founder & CEO"
               className="mt-1.5"
@@ -49,7 +53,7 @@
             <Label htmlFor="tagline">Professional Tagline (Optional)</Label>
             <Input
               id="tagline"
-              value={data.tagline}
+              value={safeText(safeData?.tagline)}
               onChange={(e) => handleChange("tagline", e.target.value)}
               placeholder="e.g., Building smarter businesses through AI and automation"
               className="mt-1.5"
@@ -60,7 +64,7 @@
             <Label htmlFor="bio">Short Professional Bio *</Label>
             <Textarea
               id="bio"
-              value={data.bio}
+              value={safeText(safeData?.bio)}
               onChange={(e) => handleChange("bio", e.target.value)}
               placeholder="2-3 sentences about your professional background and focus"
               className="mt-1.5 min-h-[120px]"

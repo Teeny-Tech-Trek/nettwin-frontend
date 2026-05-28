@@ -4,6 +4,7 @@ import { Links } from "@/types/digitalTwin";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { safeArray, safeText } from "@/utils/safeRender";
 
 interface Step9LinksProps {
   data: Links;
@@ -12,20 +13,24 @@ interface Step9LinksProps {
 
 export const Step9Links = ({ data, onChange }: Step9LinksProps) => {
   const [socialInput, setSocialInput] = useState("");
+  
+  // Ensure data and arrays are safe
+  const safeData = data ?? { linkedin: "", website: "", portfolio: "", socials: [] };
+  const socials = safeArray(safeData?.socials);
 
   const handleChange = (field: keyof Links, value: string | string[]) => {
-    onChange({ ...data, [field]: value });
+    onChange({ ...safeData, [field]: value });
   };
 
   const addSocial = () => {
-    if (socialInput.trim() && !data.socials.includes(socialInput.trim())) {
-      handleChange("socials", [...data.socials, socialInput.trim()]);
+    if (socialInput.trim() && !socials.includes(socialInput.trim())) {
+      handleChange("socials", [...socials, socialInput.trim()]);
       setSocialInput("");
     }
   };
 
   const removeSocial = (social: string) => {
-    handleChange("socials", data.socials.filter((s) => s !== social));
+    handleChange("socials", socials.filter((s) => s !== social));
   };
 
   return (
@@ -39,7 +44,7 @@ export const Step9Links = ({ data, onChange }: Step9LinksProps) => {
         <div>
           <Label>LinkedIn Profile</Label>
           <Input
-            value={data.linkedin}
+            value={safeText(safeData?.linkedin)}
             onChange={(e) => handleChange("linkedin", e.target.value)}
             placeholder="https://linkedin.com/in/..."
             className="mt-1.5"
@@ -49,7 +54,7 @@ export const Step9Links = ({ data, onChange }: Step9LinksProps) => {
         <div>
           <Label>Personal Website</Label>
           <Input
-            value={data.website}
+            value={safeText(safeData?.website)}
             onChange={(e) => handleChange("website", e.target.value)}
             placeholder="https://..."
             className="mt-1.5"
@@ -59,7 +64,7 @@ export const Step9Links = ({ data, onChange }: Step9LinksProps) => {
         <div>
           <Label>Portfolio / Company Site</Label>
           <Input
-            value={data.portfolio}
+            value={safeText(safeData?.portfolio)}
             onChange={(e) => handleChange("portfolio", e.target.value)}
             placeholder="https://..."
             className="mt-1.5"
@@ -78,9 +83,9 @@ export const Step9Links = ({ data, onChange }: Step9LinksProps) => {
           <p className="text-sm text-muted-foreground mt-1">
             Twitter/X, GitHub, Medium, etc.
           </p>
-          {data.socials.length > 0 && (
+          {Array.isArray(socials) && socials.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {data.socials.map((social) => (
+              {socials.map((social) => (
                 <Badge key={social} variant="secondary" className="text-xs">
                   {social}
                   <button onClick={() => removeSocial(social)} className="ml-2">
