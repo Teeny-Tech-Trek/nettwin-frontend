@@ -270,7 +270,10 @@ export const chatService = {
     messages: Array<{ role: string; content: string }>;
     userEmail: string;
   }) => {
-    const response = await axiosInstance.post('/chat', data);
+    const response = await axiosInstance.post(
+      `/v1/twins/${data.twinId}/chat`,
+      data,
+    );
     return response.data;
   },
 };
