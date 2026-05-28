@@ -756,7 +756,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, Send, User, ArrowLeft, Mail, Building, Star, ExternalLink, Linkedin, Sparkles, Globe, Briefcase, Users, Share2 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -783,7 +783,27 @@ interface PublicAgent {
     tagline?: string;
     profilePicture?: string;
   };
-  businesses: { name: string; description: string }[];
+  businesses: {
+    name: string;
+    description: string;
+    role?: string;
+    link?: string;
+    products?: string[];
+    duration?: string;
+  }[];
+  experience?: {
+    company: string;
+    role: string;
+    duration?: string;
+    key_projects?: string[];
+  }[];
+  education?: { institution: string; degree: string; year?: string }[];
+  skills?: {
+    list?: string[];
+    coreDomains?: string;
+    signatureStrengths?: string;
+  };
+  story?: { mission?: string; impact?: string; themes?: string[] };
   personality?: { tone?: string; traits?: string[] };
   user?: {
     profilePicture?: string;
@@ -823,6 +843,33 @@ const Chatbot = () => {
   const [error, setError] = useState<string | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [showLinksModal, setShowLinksModal] = useState(false);
+  const [showBusinessModal, setShowBusinessModal] = useState(false);
+  const [showExpertiseModal, setShowExpertiseModal] = useState(false);
+  const [showProjectsModal, setShowProjectsModal] = useState(false);
+
+  // Persistent chat session id — keyed per twin so a visitor browsing
+  // multiple twins doesn't accidentally cross-pollinate their conversation
+  // memory on the AI engine. We use crypto.randomUUID where available and
+  // fall back to a timestamp-based id on older browsers.
+  const sessionId = useMemo(() => {
+    if (!id) return '';
+    const storageKey = `chat_session_id:${id}`;
+    try {
+      const existing = localStorage.getItem(storageKey);
+      if (existing) return existing;
+      const fresh =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `nettwin-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      localStorage.setItem(storageKey, fresh);
+      return fresh;
+    } catch {
+      // localStorage can be unavailable (private mode, blocked cookies).
+      // Fall back to an in-memory id; loses cross-reload continuity but
+      // still gives the AI engine a stable id within this page session.
+      return `nettwin-${id}-${Date.now()}`;
+    }
+  }, [id]);
   const [leadData, setLeadData] = useState<LeadFormData>({ name: "", email: "", phone: "", company: "", interest: "" });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -962,6 +1009,7 @@ useEffect(() => {
           { role: "user", content: messageContent },
         ],
         userEmail: userProfile?.email || "guest@example.com",
+        sessionId,
       });
       
       const aiMessage: Message = {
@@ -1108,29 +1156,34 @@ useEffect(() => {
   };
 
   // Quick Templates
+  //
+  // Expertise / Business / Projects open a structured card populated from
+  // the twin's stored profile (already returned by /digital-twin/public).
+  // They do NOT send a chat message — the LLM is not asked to invent
+  // facts the user has already entered.
   const templates = [
-    { 
-      label: "Expertise", 
-      icon: <Star className="w-3.5 h-3.5" />, 
-      onClick: () => handleTemplateClick("Tell me about your expertise and background.") 
+    {
+      label: "Expertise",
+      icon: <Star className="w-3.5 h-3.5" />,
+      onClick: () => setShowExpertiseModal(true),
     },
-    { 
-      label: "Business", 
-      icon: <Building className="w-3.5 h-3.5" />, 
-      onClick: () => handleTemplateClick("What business opportunities do you see for collaboration?") 
+    {
+      label: "Business",
+      icon: <Building className="w-3.5 h-3.5" />,
+      onClick: () => setShowBusinessModal(true),
     },
-    { 
-      label: "Projects", 
-      icon: <Briefcase className="w-3.5 h-3.5" />, 
-      onClick: () => handleTemplateClick("Tell me about your recent projects and work.") 
+    {
+      label: "Projects",
+      icon: <Briefcase className="w-3.5 h-3.5" />,
+      onClick: () => setShowProjectsModal(true),
     },
-    { 
-      label: "Connect", 
-      icon: <Mail className="w-3.5 h-3.5" />, 
-      onClick: () => { 
-        setLeadData((prev) => ({ ...prev, interest: "Partnership inquiry" })); 
-        setShowLeadModal(true); 
-      } 
+    {
+      label: "Connect",
+      icon: <Mail className="w-3.5 h-3.5" />,
+      onClick: () => {
+        setLeadData((prev) => ({ ...prev, interest: "Partnership inquiry" }));
+        setShowLeadModal(true);
+      },
     },
   ];
 
@@ -1487,6 +1540,202 @@ useEffect(() => {
                 Feel free to explore my work and connect!
               </p>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Profile Modal — populated from stored twin profile only */}
+      <Dialog open={showBusinessModal} onOpenChange={setShowBusinessModal}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl bg-[#102A43] border border-white/10 p-0 flex flex-col max-h-[88dvh] overflow-hidden [&>button]:right-3.5 [&>button]:top-3.5 [&>button]:z-10 [&>button]:flex [&>button]:h-7 [&>button]:w-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:bg-white/5 [&>button]:text-slate-300 [&>button]:opacity-100 [&>button]:ring-0 [&>button]:ring-offset-0 [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:transition-colors">
+          <DialogHeader className="pl-5 pr-14 pt-5 pb-3 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-white text-base sm:text-lg">
+              <Building className="w-4.5 h-4.5 text-cyan-400 flex-shrink-0" />
+              Business
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 space-y-4 text-sm text-slate-200">
+            {agent.businesses && agent.businesses.length > 0 ? (
+              agent.businesses.map((b, idx) => (
+                <div key={`${b.name}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-white font-semibold leading-tight">{b.name}</div>
+                      {b.role && <div className="text-cyan-300/90 text-xs mt-0.5">{b.role}</div>}
+                    </div>
+                    {b.duration && (
+                      <div className="text-[11px] text-slate-400 whitespace-nowrap pt-0.5">{b.duration}</div>
+                    )}
+                  </div>
+                  {b.description && (
+                    <p className="text-slate-300 leading-relaxed">{b.description}</p>
+                  )}
+                  {b.products && b.products.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {b.products.map((p) => (
+                        <span key={p} className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {b.link && (
+                    <a
+                      href={b.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-cyan-300 hover:text-cyan-200"
+                    >
+                      <Globe className="w-3.5 h-3.5" /> {getDomainFromUrl(b.link)}
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-slate-400 text-sm">No business details have been shared yet.</p>
+            )}
+
+            {agent.story?.mission && (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Mission</div>
+                <p className="text-slate-200 leading-relaxed">{agent.story.mission}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expertise Profile Modal */}
+      <Dialog open={showExpertiseModal} onOpenChange={setShowExpertiseModal}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl bg-[#102A43] border border-white/10 p-0 flex flex-col max-h-[88dvh] overflow-hidden [&>button]:right-3.5 [&>button]:top-3.5 [&>button]:z-10 [&>button]:flex [&>button]:h-7 [&>button]:w-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:bg-white/5 [&>button]:text-slate-300 [&>button]:opacity-100 [&>button]:ring-0 [&>button]:ring-offset-0 [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:transition-colors">
+          <DialogHeader className="pl-5 pr-14 pt-5 pb-3 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-white text-base sm:text-lg">
+              <Star className="w-4.5 h-4.5 text-cyan-400 flex-shrink-0" />
+              Expertise
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 space-y-4 text-sm text-slate-200">
+            {agent.skills?.list && agent.skills.list.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Skills</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {agent.skills.list.map((s) => (
+                    <span key={s} className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {agent.skills?.coreDomains && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Core domains</div>
+                <p className="text-slate-200 leading-relaxed whitespace-pre-line">{agent.skills.coreDomains}</p>
+              </div>
+            )}
+            {agent.skills?.signatureStrengths && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Signature strengths</div>
+                <p className="text-slate-200 leading-relaxed whitespace-pre-line">{agent.skills.signatureStrengths}</p>
+              </div>
+            )}
+            {agent.experience && agent.experience.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Experience</div>
+                <div className="space-y-2">
+                  {agent.experience.map((e, idx) => (
+                    <div key={`${e.company}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-white font-medium leading-tight">{e.role}</div>
+                      <div className="text-cyan-300/90 text-xs mt-0.5">
+                        {e.company}{e.duration ? ` · ${e.duration}` : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {agent.education && agent.education.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Education</div>
+                <div className="space-y-2">
+                  {agent.education.map((ed, idx) => (
+                    <div key={`${ed.institution}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-white font-medium leading-tight">{ed.degree}</div>
+                      <div className="text-cyan-300/90 text-xs mt-0.5">
+                        {ed.institution}{ed.year ? ` · ${ed.year}` : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!agent.skills?.list?.length &&
+              !agent.skills?.coreDomains &&
+              !agent.skills?.signatureStrengths &&
+              !agent.experience?.length &&
+              !agent.education?.length && (
+                <p className="text-slate-400 text-sm">No expertise details have been shared yet.</p>
+              )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Projects Profile Modal */}
+      <Dialog open={showProjectsModal} onOpenChange={setShowProjectsModal}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl bg-[#102A43] border border-white/10 p-0 flex flex-col max-h-[88dvh] overflow-hidden [&>button]:right-3.5 [&>button]:top-3.5 [&>button]:z-10 [&>button]:flex [&>button]:h-7 [&>button]:w-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:bg-white/5 [&>button]:text-slate-300 [&>button]:opacity-100 [&>button]:ring-0 [&>button]:ring-offset-0 [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:transition-colors">
+          <DialogHeader className="pl-5 pr-14 pt-5 pb-3 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-white text-base sm:text-lg">
+              <Briefcase className="w-4.5 h-4.5 text-cyan-400 flex-shrink-0" />
+              Projects
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 space-y-3 text-sm text-slate-200">
+            {(() => {
+              const expWithProjects = (agent.experience || []).filter(
+                (e) => e.key_projects && e.key_projects.length > 0,
+              );
+              const businessProducts = (agent.businesses || []).filter(
+                (b) => b.products && b.products.length > 0,
+              );
+              if (expWithProjects.length === 0 && businessProducts.length === 0) {
+                return (
+                  <p className="text-slate-400 text-sm">No projects have been shared yet.</p>
+                );
+              }
+              return (
+                <>
+                  {expWithProjects.map((e, idx) => (
+                    <div key={`exp-${e.company}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                      <div>
+                        <div className="text-white font-semibold leading-tight">{e.role}</div>
+                        <div className="text-cyan-300/90 text-xs mt-0.5">
+                          {e.company}{e.duration ? ` · ${e.duration}` : ""}
+                        </div>
+                      </div>
+                      <ul className="list-disc list-inside space-y-1 text-slate-200">
+                        {e.key_projects!.map((p, pIdx) => (
+                          <li key={`${p}-${pIdx}`} className="leading-relaxed">{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  {businessProducts.map((b, idx) => (
+                    <div key={`biz-${b.name}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                      <div>
+                        <div className="text-white font-semibold leading-tight">{b.name}</div>
+                        {b.role && <div className="text-cyan-300/90 text-xs mt-0.5">{b.role}</div>}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {b.products!.map((p) => (
+                          <span key={p} className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>

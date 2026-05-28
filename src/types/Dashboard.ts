@@ -22,6 +22,15 @@ export interface DigitalTwin {
   isActive: boolean;
   createdAt: string;
   lastUpdated: string;
+  // Populated by the backend after every AI-engine sync attempt. When
+  // state !== "synced", the dashboard surfaces a "chat may return
+  // generic answers" banner with a one-click resync.
+  aiSyncStatus?: {
+    state: 'never' | 'synced' | 'failed';
+    lastAttemptAt?: string | null;
+    lastSyncedAt?: string | null;
+    lastError?: string;
+  };
 }
 
 export interface Lead {

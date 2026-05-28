@@ -15,7 +15,8 @@ import {
   Menu, X, ChevronDown, ChevronRight, FileText, Briefcase, User, CreditCard,
   LogOut, Camera, Sparkles, Plus, ArrowRight, PlayCircle, Pencil, Trash2,
   ExternalLink, Download, Users, UserPlus, BadgeCheck, TrendingUp, Mail,
-  Phone, Calendar, Filter, Hexagon, Building2, MessageSquare,
+  Phone, Calendar, Filter, Hexagon, Building2, MessageSquare, AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import type { DigitalTwin, Lead, UserProfile, StatusCounts } from '../types/Dashboard';
 
@@ -53,6 +54,11 @@ export interface DashboardViewProps {
   onLeadStatusChange: (leadId: string, status: string) => void;
   onLogout: () => void;
   onLearnMore?: () => void;
+  // Re-pushes the structured profile to the AI engine. Used by the
+  // out-of-sync banner inside TwinCard; no-op when the dashboard is rendered
+  // without a wired handler (legacy callers).
+  onResync?: () => void;
+  isResyncing?: boolean;
 }
 
 // ─── Pure helpers ────────────────────────────────────────────────────────
@@ -446,12 +452,14 @@ const TwinAvatar = ({ src, name }: { src: string | null; name: string }) =>
     </div>
   );
 
-const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, onDownloadQR }:
-  { twin: DigitalTwin; avatarSrc: string | null; twinPublicUrl: (id: string) => string; onEditTwin: () => void; onDeleteTwin: () => void; onDownloadQR: (id: string) => void; }
+const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, onDownloadQR, onResync, isResyncing }:
+  { twin: DigitalTwin; avatarSrc: string | null; twinPublicUrl: (id: string) => string; onEditTwin: () => void; onDeleteTwin: () => void; onDownloadQR: (id: string) => void; onResync?: () => void; isResyncing?: boolean; }
 ) => {
   const [expanded, setExpanded] = useState(false);
   const bio = twin.identity?.bio ?? '';
   const isLong = bio.length > 120;
+  const syncState = twin.aiSyncStatus?.state ?? 'never';
+  const outOfSync = syncState !== 'synced';
 
   return (
     <motion.div
@@ -471,6 +479,34 @@ const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, on
           </span>
         </div>
       </div>
+
+      {/* Out-of-sync banner — your chatbot's knowledge is stale until a sync runs.
+          Copy is intentionally visitor-neutral ("your chatbot"), no AI-engine jargon. */}
+      {outOfSync && (
+        <div className="px-6 py-3 border-b border-amber-400/20 bg-amber-500/[0.07]">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-amber-100 leading-tight">
+                {syncState === 'failed'
+                  ? "Your chatbot couldn't load your latest profile. Tap Sync to try again."
+                  : "Your chatbot hasn't loaded your profile yet. Tap Sync to enable rich answers."}
+              </p>
+            </div>
+            {onResync && (
+              <button
+                type="button"
+                onClick={onResync}
+                disabled={isResyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-100 text-[12px] font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isResyncing ? 'animate-spin' : ''}`} />
+                {isResyncing ? 'Syncing…' : 'Sync'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Card body */}
       <div className="px-6 py-5 flex flex-col sm:flex-row gap-5">
@@ -924,7 +960,8 @@ const DashboardView = (props: DashboardViewProps) => {
               {props.twins.map(twin => (
                 <TwinCard key={twin._id} twin={twin} avatarSrc={props.avatarSrc}
                   twinPublicUrl={props.twinPublicUrl} onEditTwin={props.onEditTwin}
-                  onDeleteTwin={props.onDeleteTwin} onDownloadQR={props.onDownloadQR} />
+                  onDeleteTwin={props.onDeleteTwin} onDownloadQR={props.onDownloadQR}
+                  onResync={props.onResync} isResyncing={props.isResyncing} />
               ))}
             </div>
 

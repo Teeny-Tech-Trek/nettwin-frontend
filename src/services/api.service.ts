@@ -269,10 +269,21 @@ export const chatService = {
     twinId: string;
     messages: Array<{ role: string; content: string }>;
     userEmail: string;
+    sessionId?: string;
   }) => {
+    // The AI engine keys its conversation memory (history compression,
+    // coref resolution) on session_id. We forward it as both `sessionId`
+    // (camelCase, what the Node controller reads) and `session_id`
+    // (snake_case, what the Python engine reads) so whichever layer
+    // forwards the body verbatim still works.
+    const body = {
+      ...data,
+      sessionId: data.sessionId,
+      session_id: data.sessionId,
+    };
     const response = await axiosInstance.post(
       `/v1/twins/${data.twinId}/chat`,
-      data,
+      body,
     );
     return response.data;
   },
