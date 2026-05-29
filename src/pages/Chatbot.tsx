@@ -845,7 +845,6 @@ const Chatbot = () => {
   const [showLinksModal, setShowLinksModal] = useState(false);
   const [showBusinessModal, setShowBusinessModal] = useState(false);
   const [showExpertiseModal, setShowExpertiseModal] = useState(false);
-  const [showProjectsModal, setShowProjectsModal] = useState(false);
 
   // Persistent chat session id — keyed per twin so a visitor browsing
   // multiple twins doesn't accidentally cross-pollinate their conversation
@@ -1149,10 +1148,12 @@ const Chatbot = () => {
 
   // Quick Templates
   //
-  // Expertise / Business / Projects open a structured card populated from
+  // Expertise / Business open a structured card populated from
   // the twin's stored profile (already returned by /digital-twin/public).
   // They do NOT send a chat message — the LLM is not asked to invent
   // facts the user has already entered.
+  // LinkedIn opens the twin's LinkedIn profile directly in a new window
+  // (only shown if LinkedIn URL is provided).
   const templates = [
     {
       label: "Expertise",
@@ -1164,11 +1165,15 @@ const Chatbot = () => {
       icon: <Building className="w-3.5 h-3.5" />,
       onClick: () => setShowBusinessModal(true),
     },
-    {
-      label: "Projects",
-      icon: <Briefcase className="w-3.5 h-3.5" />,
-      onClick: () => setShowProjectsModal(true),
-    },
+    ...(agent?.links?.linkedin ? [{
+      label: "LinkedIn",
+      icon: <Linkedin className="w-3.5 h-3.5" />,
+      onClick: () => {
+        if (agent?.links?.linkedin) {
+          window.open(agent.links.linkedin, "_blank");
+        }
+      },
+    }] : []),
     {
       label: "Connect",
       icon: <Mail className="w-3.5 h-3.5" />,
@@ -1667,67 +1672,6 @@ const Chatbot = () => {
               !agent.education?.length && (
                 <p className="text-slate-400 text-sm">No expertise details have been shared yet.</p>
               )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Projects Profile Modal */}
-      <Dialog open={showProjectsModal} onOpenChange={setShowProjectsModal}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl bg-[#102A43] border border-white/10 p-0 flex flex-col max-h-[88dvh] overflow-hidden [&>button]:right-3.5 [&>button]:top-3.5 [&>button]:z-10 [&>button]:flex [&>button]:h-7 [&>button]:w-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:bg-white/5 [&>button]:text-slate-300 [&>button]:opacity-100 [&>button]:ring-0 [&>button]:ring-offset-0 [&>button]:hover:bg-white/15 [&>button]:hover:text-white [&>button]:transition-colors">
-          <DialogHeader className="pl-5 pr-14 pt-5 pb-3 flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2 text-white text-base sm:text-lg">
-              <Briefcase className="w-4.5 h-4.5 text-cyan-400 flex-shrink-0" />
-              Projects
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 space-y-3 text-sm text-slate-200">
-            {(() => {
-              const expWithProjects = (agent.experience || []).filter(
-                (e) => e.key_projects && e.key_projects.length > 0,
-              );
-              const businessProducts = (agent.businesses || []).filter(
-                (b) => b.products && b.products.length > 0,
-              );
-              if (expWithProjects.length === 0 && businessProducts.length === 0) {
-                return (
-                  <p className="text-slate-400 text-sm">No projects have been shared yet.</p>
-                );
-              }
-              return (
-                <>
-                  {expWithProjects.map((e, idx) => (
-                    <div key={`exp-${e.company}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
-                      <div>
-                        <div className="text-white font-semibold leading-tight">{e.role}</div>
-                        <div className="text-cyan-300/90 text-xs mt-0.5">
-                          {e.company}{e.duration ? ` · ${e.duration}` : ""}
-                        </div>
-                      </div>
-                      <ul className="list-disc list-inside space-y-1 text-slate-200">
-                        {e.key_projects!.map((p, pIdx) => (
-                          <li key={`${p}-${pIdx}`} className="leading-relaxed">{p}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                  {businessProducts.map((b, idx) => (
-                    <div key={`biz-${b.name}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
-                      <div>
-                        <div className="text-white font-semibold leading-tight">{b.name}</div>
-                        {b.role && <div className="text-cyan-300/90 text-xs mt-0.5">{b.role}</div>}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {b.products!.map((p) => (
-                          <span key={p} className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">
-                            {p}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              );
-            })()}
           </div>
         </DialogContent>
       </Dialog>
