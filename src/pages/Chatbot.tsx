@@ -1170,7 +1170,10 @@ const Chatbot = () => {
       icon: <Linkedin className="w-3.5 h-3.5" />,
       onClick: () => {
         if (agent?.links?.linkedin) {
-          window.open(agent.links.linkedin, "_blank");
+          const url = agent.links.linkedin.startsWith("http")
+            ? agent.links.linkedin
+            : `https://${agent.links.linkedin}`;
+          window.open(url, "_blank");
         }
       },
     }] : []),
