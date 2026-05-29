@@ -928,14 +928,6 @@ const Chatbot = () => {
   }
 }, [messages]);
 
-// Fetch Public Digital Twin
-useEffect(() => {
-  const fetchAgent = async () => {
-    // ... your existing code
-  };
-  fetchAgent();
-}, [id]);
-
   // Fetch Public Digital Twin
   useEffect(() => {
     const fetchAgent = async () => {
