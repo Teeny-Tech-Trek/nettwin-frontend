@@ -1259,13 +1259,16 @@ const Dashboard = () => {
 
   // Listen for twin:saved (dispatched by the wizard on save and by the context
   // on delete) so the cached digitalTwin reloads from the server.
+  // Deliberately empty deps — loadDigitalTwin isn't memoized so including it
+  // would re-attach the listener every render, causing flicker/leaks.
   useEffect(() => {
     const onTwinSaved = () => {
       loadDigitalTwin();
     };
     window.addEventListener('twin:saved', onTwinSaved);
     return () => window.removeEventListener('twin:saved', onTwinSaved);
-  }, [loadDigitalTwin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // "Twin ready" email trigger.
   //
@@ -1280,8 +1283,13 @@ const Dashboard = () => {
   // notified yet — this covers the "closed the wizard, came back later" case.
   useEffect(() => {
     if (!digitalTwin?._id) return;
-    // @ts-expect-error — aiReadyEmailedAt is server-set, not on the TS type
-    if (digitalTwin.aiReadyEmailedAt) return;
+    // Schema field is `aiReadyEmailSentAt` (NOT aiReadyEmailedAt — was a
+    // typo that caused this poll to never short-circuit, looping every 5s
+    // and triggering loadDigitalTwin on every successful tick — which in
+    // turn flipped the context's isLoading state and made the dashboard
+    // flicker on mobile/desktop after login.
+    // @ts-expect-error — aiReadyEmailSentAt is server-set, not on the TS type
+    if (digitalTwin.aiReadyEmailSentAt) return;
 
     let cancelled = false;
     const POLL_MS = 5000;
@@ -1293,8 +1301,8 @@ const Dashboard = () => {
       try {
         const res = await digitalTwinService.ingestionStatus();
         if (res?.notice === 'sent' || res?.notice === 'previously-sent') {
-          // Email is out (or was already out) — stop polling and refresh the
-          // cached twin so aiReadyEmailedAt becomes visible.
+          // Email is out — stop polling and refresh the cached twin so
+          // aiReadyEmailSentAt becomes visible.
           loadDigitalTwin();
           return;
         }
@@ -1306,7 +1314,12 @@ const Dashboard = () => {
     };
     tick();
     return () => { cancelled = true; };
-  }, [digitalTwin?._id, loadDigitalTwin]);
+    // Deliberately exclude loadDigitalTwin from deps — it isn't memoized
+    // in the context, so including it re-runs this effect on every parent
+    // render and restarts the poll endlessly. We capture the latest
+    // reference inside the closure; that's fine for a single-shot trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [digitalTwin?._id]);
 
   // GET /auth/profile responds with `{ success: true, user }`; defensively
   // unwrap so `userProfile` is always the actual user object.
