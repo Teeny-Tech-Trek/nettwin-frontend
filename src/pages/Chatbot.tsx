@@ -1019,7 +1019,7 @@
 
 
 
-// frontend/src/components/Chatbot.tsx
+// frontend/src/components/Chatbot.tsx// frontend/src/components/Chatbot.tsx
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1166,11 +1166,19 @@ const Chatbot = () => {
       const el = rootRef.current;
       if (!el) return;
       if (vv) {
+        // Pin to the EXACT visible rect — height/top fix the vertical clip
+        // (keyboard/toolbars) and width/left fix the horizontal clip: without
+        // width+left the element spans the wider *layout* viewport, pushing the
+        // right edge (send button, header actions) off-screen while typing.
         el.style.height = `${vv.height}px`;
+        el.style.width = `${vv.width}px`;
         el.style.top = `${vv.offsetTop}px`;
+        el.style.left = `${vv.offsetLeft}px`;
       } else {
         el.style.height = `${window.innerHeight}px`;
+        el.style.width = "100%";
         el.style.top = "0px";
+        el.style.left = "0px";
       }
     };
     applyViewport();
@@ -1499,8 +1507,8 @@ const Chatbot = () => {
     */
     <div
       ref={rootRef}
-      style={{ position: "fixed", left: 0, right: 0 }}
-      className="flex flex-col h-[100dvh] overflow-hidden bg-gradient-to-b from-white via-slate-50 to-slate-50 text-slate-700 antialiased"
+      style={{ position: "fixed", top: 0, left: 0, width: "100%" }}
+      className="flex flex-col h-[100dvh] max-w-full overflow-hidden bg-gradient-to-b from-white via-slate-50 to-slate-50 text-slate-700 antialiased"
     >
       {/* Header */}
       <motion.div
