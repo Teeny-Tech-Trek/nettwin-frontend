@@ -1361,8 +1361,9 @@ const Dashboard = () => {
   };
 
   // Profile picture upload. Client-side validations give instant feedback
-  // before we hit the network. Hard cap: 100 KB.
-  const MAX_AVATAR_BYTES = 100 * 1024;
+  // before we hit the network. Keep this aligned with the backend multer
+  // limit in uploadMiddleware.js.
+  const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
   const handleProfilePictureUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -1382,7 +1383,7 @@ const Dashboard = () => {
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      const kb = (file.size / 1024).toFixed(1);
+      const mb = (file.size / 1024 / 1024).toFixed(1);
       toast({
         title: 'File too large',
         description: `Profile pictures must be 100 KB or less — yours is ${kb} KB.`,
@@ -1415,7 +1416,7 @@ const Dashboard = () => {
 
       if (!res.ok) {
         if (res.status === 413) {
-          throw new Error('The server rejected the file as too large. Try an image under 100 KB.');
+          throw new Error('The server rejected the file as too large. Try an image under 5 MB.');
         }
         const errBody = await res.json().catch(() => null);
         throw new Error(errBody?.error || errBody?.message || 'Failed to upload profile picture');

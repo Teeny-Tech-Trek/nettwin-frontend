@@ -21,7 +21,7 @@ import { ArrowLeft, Camera, Loader2, Trash2, User as UserIcon, Lock, Save } from
 import { authService } from '@/services/api.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { IMAGE_BASE_URL } from '@/axios.config';
+import { IMAGE_BASE_URL, API_BASE_URL } from '@/axios.config';
 
 interface UserProfile {
   _id: string;
@@ -29,9 +29,12 @@ interface UserProfile {
   email: string;
   profilePicture?: string | null;
   avatar?: string | null;
+  // Public S3 URL set by POST /api/upload/avatar. Preferred over the legacy
+  // local-disk profilePicture/avatar when present.
+  avatarUrl?: string | null;
 }
 
-const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 100 * 1024;
 
 // Mirrors backend Joi rule in authValidators.js — keeps client errors in
 // line with server rejections so the user never sees "invalid request"
@@ -105,6 +108,9 @@ export default function ProfileSettings() {
 
   const avatarSrc = (() => {
     if (!profile) return null;
+    // New S3 upload — absolute, already-public URL. Unique filename per upload,
+    // so no cache-bust needed.
+    if (profile.avatarUrl) return profile.avatarUrl;
     if (profile.profilePicture) {
       const sep = profile.profilePicture.includes('?') ? '&' : '?';
       return `${IMAGE_BASE_URL}${profile.profilePicture}${sep}v=${avatarCacheKey}`;
@@ -164,10 +170,10 @@ export default function ProfileSettings() {
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
+      const kb = (file.size / 1024).toFixed(1);
       toast({
         title: 'File too large',
-        description: `Profile pictures must be 5 MB or smaller — yours is ${mb} MB.`,
+        description: `Profile pictures must be 100 KB or smaller — yours is ${kb} KB.`,
         variant: 'destructive',
       });
       return;
@@ -175,46 +181,73 @@ export default function ProfileSettings() {
 
     setIsUploading(true);
     try {
-      const res = await authService.updateProfilePicture(file);
-      const u = res?.user ?? res;
-      setProfile((prev) => (prev ? { ...prev, ...u } : u));
-      setAvatarCacheKey(Date.now());
-      // Sync into AuthContext + localStorage so the Dashboard header
-      // and any other surface reading `user` from context updates
-      // instantly and survives a refresh.
-      if (u?.profilePicture !== undefined) {
-        updateUser({ profilePicture: u.profilePicture, avatar: u.avatar });
+      // Upload to the S3-backed endpoint (POST /api/upload/avatar). multer-s3
+      // stores the object and the handler returns the public URL as `avatarUrl`,
+      // persisting it to User.avatarUrl. We use API_BASE_URL (which already
+      // includes /api) so this resolves to the API origin in prod, not the FE
+      // host. Content-Type is left unset so the browser sets the multipart
+      // boundary itself.
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const resp = await fetch(`${API_BASE_URL}/upload/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        if (resp.status === 413) {
+          throw new Error('The server rejected the file as too large. Try a smaller image.');
+        }
+        const errBody = await resp.json().catch(() => null);
+        throw new Error(errBody?.error || errBody?.message || 'Failed to upload photo.');
       }
+
+      const { avatarUrl } = await resp.json();
+      setProfile((prev) => (prev ? { ...prev, avatarUrl } : prev));
+      // Sync into AuthContext + localStorage so the Dashboard header and any
+      // other surface reading `user` from context updates instantly and
+      // survives a refresh.
+      updateUser({ avatarUrl });
       toast({ title: 'Photo updated', description: 'Profile picture saved.' });
     } catch (err: any) {
-      const status = err?.response?.status;
-      const msg =
-        status === 413
-          ? 'The server rejected the file as too large. Try a smaller image.'
-          : err?.response?.data?.message || err?.message || 'Failed to upload photo.';
-      toast({ title: 'Upload failed', description: msg, variant: 'destructive' });
+      toast({
+        title: 'Upload failed',
+        description: err?.message || 'Failed to upload photo.',
+        variant: 'destructive',
+      });
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleRemovePhoto = async () => {
-    if (!profile?.profilePicture) return;
+    if (!profile?.avatarUrl && !profile?.profilePicture) return;
     setIsRemoving(true);
     try {
-      const res = await authService.removeProfilePicture();
-      const u = res?.user ?? res;
-      setProfile((prev) => (prev ? { ...prev, ...u, profilePicture: null } : u));
+      // DELETE /api/upload/avatar clears both the S3 avatarUrl and the legacy
+      // profilePicture server-side.
+      const resp = await fetch(`${API_BASE_URL}/upload/avatar`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => null);
+        throw new Error(errBody?.error || errBody?.message || 'Failed to remove photo.');
+      }
+      setProfile((prev) =>
+        prev ? { ...prev, avatarUrl: null, profilePicture: null } : prev,
+      );
       setAvatarCacheKey(Date.now());
       // Clear from auth cache too so the avatar slot reverts to initials
-      // everywhere and a refresh doesn't reload the deleted image (which
-      // now 404s because the file was unlinked server-side).
-      updateUser({ profilePicture: null as unknown as undefined, avatar: u?.avatar });
+      // everywhere and a refresh doesn't reload the deleted image.
+      updateUser({ avatarUrl: null, profilePicture: null as unknown as undefined });
       toast({ title: 'Photo removed', description: 'Profile picture cleared.' });
     } catch (err: any) {
       toast({
         title: 'Remove failed',
-        description: err?.response?.data?.message || err?.message || 'Please try again.',
+        description: err?.message || 'Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -314,7 +347,7 @@ export default function ProfileSettings() {
 
             <div className="flex-1 w-full">
               <p className="text-sm text-slate-300 mb-4 text-center sm:text-left">
-                JPG, PNG, WebP, or GIF. Max 5 MB.
+                JPG, PNG, WebP, or GIF. Max 100 KB.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
@@ -337,11 +370,11 @@ export default function ProfileSettings() {
                   ) : (
                     <>
                       <Camera className="w-4 h-4" />
-                      {profile?.profilePicture ? 'Change Photo' : 'Upload Photo'}
+                      {profile?.avatarUrl || profile?.profilePicture ? 'Change Photo' : 'Upload Photo'}
                     </>
                   )}
                 </button>
-                {profile?.profilePicture && (
+                {(profile?.avatarUrl || profile?.profilePicture) && (
                   <button
                     onClick={handleRemovePhoto}
                     disabled={isRemoving || isUploading}
