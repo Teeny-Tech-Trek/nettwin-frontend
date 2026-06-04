@@ -22,7 +22,17 @@ interface PMLead {
   processingStatus: string;
   createdAt: string;
   lastAnalyzedAt?: string | null;
+  // Denormalized analysis summary (visible without expanding the lead).
+  businessCategory?: string;
+  meetingLikelihood?: string;
+  keyOpportunity?: string;
 }
+
+const LIKELIHOOD_DOT: Record<string, string> = {
+  high: "text-emerald-400",
+  medium: "text-amber-400",
+  low: "text-slate-400",
+};
 
 const STATUS_STYLES: Record<string, string> = {
   new: "bg-blue-500/15 text-blue-300 border-blue-500/30",
@@ -118,8 +128,24 @@ export default function ProfileMatchingLeads({ twinId }: { twinId: string }) {
               <div key={lead._id}>
                 <div className="grid grid-cols-12 gap-2 items-center px-5 py-3 text-sm">
                   <div className="col-span-12 sm:col-span-3 min-w-0">
-                    <div className="text-white font-medium truncate">{lead.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      {["high", "medium", "low"].includes(String(lead.meetingLikelihood)) && (
+                        <span title={`Meeting potential: ${lead.meetingLikelihood}`}
+                          className={`text-[10px] leading-none ${LIKELIHOOD_DOT[String(lead.meetingLikelihood)]}`}>●</span>
+                      )}
+                      <span className="text-white font-medium truncate">{lead.name}</span>
+                    </div>
                     <div className="text-slate-400 text-xs truncate">{lead.email}</div>
+                    {lead.businessCategory && (
+                      <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">
+                        {lead.businessCategory}
+                      </span>
+                    )}
+                    {lead.keyOpportunity && (
+                      <div className="text-[11px] text-cyan-300/80 truncate mt-0.5" title={lead.keyOpportunity}>
+                        ★ {lead.keyOpportunity}
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-6 sm:col-span-3 flex flex-wrap gap-2 text-xs">
                     {resumeHref(lead.resumeFileUrl) && (
@@ -218,14 +244,60 @@ function RecList({ items }: { items: { name: string; why: string }[] }) {
   );
 }
 
+const LIKELIHOOD_STYLES: Record<string, string> = {
+  high: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  medium: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  low: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+};
+
 function AnalysisView({ analysis, emails }: { analysis: any; emails?: any[] }) {
+  const likelihood = String(analysis.meetingLikelihood || "").toLowerCase();
   return (
     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 pt-2">
+      {/* Triage header: business category + meeting potential */}
+      {(analysis.businessCategory || likelihood) && (
+        <div className="sm:col-span-2 flex flex-wrap items-center gap-2 mb-1">
+          {analysis.businessCategory && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">
+              {analysis.businessCategory}
+            </span>
+          )}
+          {["high", "medium", "low"].includes(likelihood) && (
+            <span className={`text-[11px] px-2 py-0.5 rounded-full border ${LIKELIHOOD_STYLES[likelihood]}`}>
+              Meeting potential: {likelihood}
+            </span>
+          )}
+        </div>
+      )}
       <div className="sm:col-span-2">
         <Block title="Professional Summary">
           <p className="text-slate-200 leading-relaxed">{analysis.professionalSummary || "—"}</p>
         </Block>
       </div>
+      {analysis.keyObservations?.length > 0 && (
+        <div className="sm:col-span-2">
+          <Block title="Key Observations">
+            <ul className="list-disc pl-5 space-y-1 text-slate-200">
+              {analysis.keyObservations.map((o: string, i: number) => (<li key={i}>{o}</li>))}
+            </ul>
+          </Block>
+        </div>
+      )}
+      {analysis.topOpportunities?.length > 0 && (
+        <div className="sm:col-span-2">
+          <Block title="Top Opportunities">
+            <ul className="space-y-1.5">
+              {analysis.topOpportunities.map((o: any, i: number) => (
+                <li key={i} className="text-slate-200">
+                  {o.type ? <span className="text-[10px] uppercase tracking-wider text-fuchsia-300/80 mr-1">{o.type}</span> : null}
+                  <span className="font-medium">{o.title}</span>
+                  {o.description ? <span className="text-slate-400"> — {o.description}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </Block>
+        </div>
+      )}
       <Block title="Recommended Services">
         <RecList items={analysis.recommendedServices} />
       </Block>
@@ -237,6 +309,22 @@ function AnalysisView({ analysis, emails }: { analysis: any; emails?: any[] }) {
           <p className="text-slate-200 leading-relaxed">{analysis.opportunityAnalysis || "—"}</p>
         </Block>
       </div>
+      {analysis.nextSteps?.length > 0 && (
+        <div className="sm:col-span-2">
+          <Block title="Next Steps">
+            <ul className="list-disc pl-5 space-y-1 text-slate-200">
+              {analysis.nextSteps.map((s: string, i: number) => (<li key={i}>{s}</li>))}
+            </ul>
+          </Block>
+        </div>
+      )}
+      {analysis.meetingRationale && (
+        <div className="sm:col-span-2">
+          <Block title="Why Worth a Call (owner)">
+            <p className="text-slate-200 leading-relaxed">{analysis.meetingRationale}</p>
+          </Block>
+        </div>
+      )}
       {analysis.businessRecommendations?.length > 0 && (
         <div className="sm:col-span-2">
           <Block title="Business Recommendations">
