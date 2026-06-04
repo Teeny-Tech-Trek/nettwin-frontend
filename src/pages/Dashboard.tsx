@@ -1156,6 +1156,7 @@ import { SourcesPanel } from '@/components/SourcesPanel';
 import { Pencil, Eye } from 'lucide-react';
 
 import DashboardView from '../components/DasboardUiView';
+import ProfileMatchingLeads from '../components/ProfileMatchingLeads';
 import type { DigitalTwin, Lead, UserProfile, StatusCounts } from '../types/Dashboard';
 import { useBilling } from '@/features/billing/hooks/useBilling';
 import UpgradeRequiredModal from '@/features/billing/components/UpgradeRequiredModal';
@@ -1615,6 +1616,11 @@ const Dashboard = () => {
       // TODO: wire to your help/docs route or an explainer modal when ready.
       onLearnMore={() => { /* placeholder — no destructive action */ }}
     />
+    {(digitalTwin?._id || twins?.[0]?._id) && (
+      <div className="bg-gradient-to-br from-[#0A1929] via-[#0D2137] to-[#0A1929] pt-2">
+        <ProfileMatchingLeads twinId={(digitalTwin?._id || twins?.[0]?._id) as string} />
+      </div>
+    )}
     </>
   );
 };
