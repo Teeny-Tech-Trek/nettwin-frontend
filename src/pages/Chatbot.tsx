@@ -1032,7 +1032,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { authService, digitalTwinService, chatService, leadService } from '@/services/api.service';
+import { authService, digitalTwinService, chatService, leadService, profileMatchService } from '@/services/api.service';
 import { IMAGE_BASE_URL } from '@/axios.config';
 
 
@@ -1140,6 +1140,18 @@ const Chatbot = () => {
   }, [id]);
   const [leadData, setLeadData] = useState<LeadFormData>({ name: "", email: "", phone: "", company: "", interest: "" });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  // AI Profile Matching & Opportunity Analysis form.
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [profileSubmitted, setProfileSubmitted] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+    websiteUrl: "",
+    linkedinUrl: "",
+    additionalNotes: "",
+  });
+  const [profileResume, setProfileResume] = useState<File | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   // True after the owner has hit their monthly chat-message quota — freezes
   // the composer and surfaces a "currently not available" banner.
@@ -1431,7 +1443,58 @@ const Chatbot = () => {
   // facts the user has already entered.
   // LinkedIn opens the twin's LinkedIn profile directly in a new window
   // (only shown if LinkedIn URL is provided).
+  // Submit the AI Profile Matching & Opportunity Analysis form. Fire-and-leave:
+  // the backend queues the analysis and emails results, so the visitor can
+  // close the tab right after submitting.
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agent || !profileData.name.trim() || !profileData.email.trim()) return;
+    setProfileSubmitting(true);
+    try {
+      const resp = await profileMatchService.submit({
+        twinId: agent._id,
+        name: profileData.name,
+        email: profileData.email,
+        websiteUrl: profileData.websiteUrl,
+        linkedinUrl: profileData.linkedinUrl,
+        additionalNotes: profileData.additionalNotes,
+        resume: profileResume,
+      });
+      setProfileSubmitted(true);
+      // queued===false means the AI backend couldn't accept the job — be honest
+      // rather than promising an email that won't arrive.
+      if (resp && resp.queued === false) {
+        toast({
+          title: "Received",
+          description:
+            "We saved your details, but analysis is temporarily unavailable. We'll follow up by email.",
+        });
+      } else {
+        toast({
+          title: "Analysis started",
+          description: "We'll email your personalized results shortly — you can close this anytime.",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Submission failed",
+        description: err?.response?.data?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProfileSubmitting(false);
+    }
+  };
+
   const templates = [
+    {
+      label: "Profile Analysis",
+      icon: <Sparkles className="w-3.5 h-3.5 text-fuchsia-600" />,
+      onClick: () => {
+        setProfileSubmitted(false);
+        setShowProfileModal(true);
+      },
+    },
     {
       label: "Expertise",
       icon: <Star className="w-3.5 h-3.5 text-amber-500" />,
@@ -1964,6 +2027,89 @@ const Chatbot = () => {
                 <p className="text-slate-400 text-sm">No expertise details have been shared yet.</p>
               )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Profile Matching & Opportunity Analysis Modal */}
+      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl bg-white border border-slate-200 p-0 flex flex-col max-h-[90dvh] overflow-hidden shadow-xl [&>button]:right-3.5 [&>button]:top-3.5 [&>button]:z-10 [&>button]:flex [&>button]:h-7 [&>button]:w-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:bg-slate-100 [&>button]:text-slate-500 [&>button]:opacity-100 [&>button]:hover:bg-slate-200 [&>button]:hover:text-slate-700 [&>button]:transition-colors">
+          <DialogHeader className="pl-5 pr-14 pt-5 pb-3 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-slate-900 text-base sm:text-lg">
+              <Sparkles className="w-4.5 h-4.5 text-fuchsia-600 flex-shrink-0" />
+              Get Personalized Profile Analysis
+            </DialogTitle>
+          </DialogHeader>
+
+          {profileSubmitted ? (
+            <div className="px-5 pb-6 pt-2 text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-100 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-emerald-600" />
+              </div>
+              <p className="text-slate-800 font-semibold mb-1">You're all set!</p>
+              <p className="text-sm text-slate-500">
+                We're analyzing your profile and will email your personalized
+                recommendations shortly. You can close this window.
+              </p>
+              <Button
+                onClick={() => setShowProfileModal(false)}
+                className="mt-5 w-full rounded-full bg-gradient-to-r from-cyan-500 to-teal-400 text-white font-semibold h-11"
+              >
+                Done
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleProfileSubmit} className="flex flex-col min-h-0 flex-1">
+              <div className="flex-1 min-h-0 overflow-y-auto px-5 space-y-3">
+                <p className="text-xs text-slate-500">
+                  Share your professional info and {agent.identity.name} will send tailored
+                  recommendations on how they can help you.
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-name" className="text-slate-700 text-xs">Full Name *</Label>
+                  <Input id="pm-name" value={profileData.name} required
+                    onChange={(e) => setProfileData((p) => ({ ...p, name: e.target.value }))}
+                    className="bg-slate-50 border-slate-200 h-10 text-sm rounded-lg" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-email" className="text-slate-700 text-xs">Email *</Label>
+                  <Input id="pm-email" type="email" value={profileData.email} required
+                    onChange={(e) => setProfileData((p) => ({ ...p, email: e.target.value }))}
+                    className="bg-slate-50 border-slate-200 h-10 text-sm rounded-lg" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-resume" className="text-slate-700 text-xs">Resume (PDF/DOCX) — recommended</Label>
+                  <input id="pm-resume" type="file" accept=".pdf,.doc,.docx,.txt,.md"
+                    onChange={(e) => setProfileResume(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-website" className="text-slate-700 text-xs">Website URL</Label>
+                  <Input id="pm-website" value={profileData.websiteUrl} placeholder="https://"
+                    onChange={(e) => setProfileData((p) => ({ ...p, websiteUrl: e.target.value }))}
+                    className="bg-slate-50 border-slate-200 h-10 text-sm rounded-lg" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-linkedin" className="text-slate-700 text-xs">LinkedIn URL</Label>
+                  <Input id="pm-linkedin" value={profileData.linkedinUrl} placeholder="https://linkedin.com/in/..."
+                    onChange={(e) => setProfileData((p) => ({ ...p, linkedinUrl: e.target.value }))}
+                    className="bg-slate-50 border-slate-200 h-10 text-sm rounded-lg" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pm-notes" className="text-slate-700 text-xs">Additional Business Information</Label>
+                  <Textarea id="pm-notes" rows={3} value={profileData.additionalNotes}
+                    placeholder="Your goals, what you're looking for, current challenges..."
+                    onChange={(e) => setProfileData((p) => ({ ...p, additionalNotes: e.target.value }))}
+                    className="bg-slate-50 border-slate-200 resize-none text-sm rounded-lg" />
+                </div>
+              </div>
+              <div className="flex-shrink-0 px-5 pt-3 pb-5 mt-2 border-t border-slate-100">
+                <Button type="submit" disabled={profileSubmitting || !profileData.name.trim() || !profileData.email.trim()}
+                  className="w-full rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500 text-white font-semibold h-11 disabled:opacity-50">
+                  {profileSubmitting ? "Analyzing..." : "Analyze My Profile"}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 

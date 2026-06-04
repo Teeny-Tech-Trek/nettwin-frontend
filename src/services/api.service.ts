@@ -319,6 +319,51 @@ export const leadService = {
   },
 };
 
+// AI Profile Matching & Opportunity Analysis.
+export const profileMatchService = {
+  // Public — visitor submits the analysis form (multipart; resume optional).
+  submit: async (data: {
+    twinId: string;
+    name: string;
+    email: string;
+    websiteUrl?: string;
+    linkedinUrl?: string;
+    additionalNotes?: string;
+    resume?: File | null;
+  }) => {
+    const formData = new FormData();
+    formData.append('twinId', data.twinId);
+    formData.append('name', data.name);
+    formData.append('email', data.email);
+    if (data.websiteUrl) formData.append('websiteUrl', data.websiteUrl);
+    if (data.linkedinUrl) formData.append('linkedinUrl', data.linkedinUrl);
+    if (data.additionalNotes) formData.append('additionalNotes', data.additionalNotes);
+    if (data.resume) formData.append('resume', data.resume);
+    // Do NOT set Content-Type manually — the browser must add the multipart
+    // boundary itself, otherwise multer can't parse the body.
+    const response = await axiosInstance.post('/profile-match', formData);
+    return response.data;
+  },
+
+  // Owner dashboard — list profile-match leads for a twin.
+  getByTwinId: async (twinId: string) => {
+    const response = await axiosInstance.get(`/profile-match/${twinId}`);
+    return response.data;
+  },
+
+  // Owner dashboard — full analysis detail for one lead.
+  getDetail: async (leadId: string) => {
+    const response = await axiosInstance.get(`/profile-match/lead/${leadId}`);
+    return response.data;
+  },
+
+  // Owner dashboard — update lead status.
+  updateStatus: async (leadId: string, status: string) => {
+    const response = await axiosInstance.patch(`/profile-match/${leadId}/status`, { status });
+    return response.data;
+  },
+};
+
 // Billing lives in features/billing (its own types, Razorpay glue, hooks).
 // Re-exporting here keeps the convention consistent with other domain
 // services so callers can do `import { billingService } from '@/services/api.service'`.
@@ -331,6 +376,7 @@ export const apiService = {
   digitalTwin: digitalTwinService,
   chat: chatService,
   lead: leadService,
+  profileMatch: profileMatchService,
   billing: billingService,
 };
 
