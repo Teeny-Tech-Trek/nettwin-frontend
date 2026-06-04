@@ -1148,7 +1148,7 @@ import { useDigitalTwin } from '@/contexts/DigitalTwinContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { authService, leadService, digitalTwinService } from '@/services/api.service';
-import { IMAGE_BASE_URL } from '@/axios.config';
+import { IMAGE_BASE_URL, API_BASE_URL } from '@/axios.config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SourcesPanel } from '@/components/SourcesPanel';
 // Pencil = Edit Twin CTA shown when the user already owns a twin.
@@ -1163,7 +1163,7 @@ import UpgradeRequiredModal from '@/features/billing/components/UpgradeRequiredM
 
 const Dashboard = () => {
   const { digitalTwin, isLoading, loadDigitalTwin, deleteTwin } = useDigitalTwin();
-  const { logout, updateUser } = useAuth();
+  const { logout } = useAuth();
   const { toast } = useToast();
   // Imperative router push. Used by the Create/Edit CTAs to land the user on
   // the wizard (single-twin model — the wizard auto-detects create vs edit by
@@ -1179,11 +1179,11 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  // Cache-buster bumped on every successful avatar upload so the <img>
-  // element refetches even when the URL path is identical (the server usually
-  // overwrites the same filename, so the browser would otherwise serve the
-  // stale local copy from disk cache).
-  const [avatarCacheKey, setAvatarCacheKey] = useState<number>(0);
+  // Resolved avatar URL handed to <DashboardView>. Seeded on profile fetch and
+  // updated after a successful S3 upload. Holds either the new public S3 URL
+  // (User.avatarUrl), a legacy /uploads profilePicture, or an OAuth avatar —
+  // see resolveAvatarSrc below.
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFetched = useRef(false);
 
@@ -1330,9 +1330,13 @@ const Dashboard = () => {
       const user = userData?.user ?? userData;
       setUserProfile(user);
 
-      // Profile-picture nudge: if the user has no photo, show the upload modal
-      // after a beat. Skip if the response was malformed so we don't spam.
-      if (user && !user.profilePicture && !user.avatar) {
+      // Seed the avatar shown in the header. Prefer the new S3 avatarUrl, then
+      // fall back to a legacy /uploads profilePicture or an OAuth avatar.
+      setAvatarSrc(resolveAvatarSrc(user));
+
+      // Profile-picture nudge: if the user has no photo at all, show the upload
+      // modal after a beat. Skip if the response was malformed so we don't spam.
+      if (user && !user.avatarUrl && !user.profilePicture && !user.avatar) {
         setTimeout(() => setIsProfileModalOpen(true), 2000);
       }
     } catch (error: any) {
@@ -1356,9 +1360,9 @@ const Dashboard = () => {
     }
   };
 
-  // Profile picture upload. Client-side validations mirror the backend multer
-  // limit so the user gets instant feedback instead of a confusing 413.
-  const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+  // Profile picture upload. Client-side validations give instant feedback
+  // before we hit the network. Hard cap: 100 KB.
+  const MAX_AVATAR_BYTES = 100 * 1024;
 
   const handleProfilePictureUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -1378,10 +1382,10 @@ const Dashboard = () => {
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
+      const kb = (file.size / 1024).toFixed(1);
       toast({
         title: 'File too large',
-        description: `Profile pictures must be 5 MB or less — yours is ${mb} MB.`,
+        description: `Profile pictures must be 100 KB or less — yours is ${kb} KB.`,
         variant: 'destructive',
       });
       return;
@@ -1389,22 +1393,39 @@ const Dashboard = () => {
 
     setIsUploading(true);
     try {
-      const result = await authService.updateProfilePicture(file);
-      const updatedUser = result?.user ?? result;
-      setUserProfile(updatedUser);
-      // Bump cache key so the <img> with the new src refetches from server even
-      // when the path is unchanged (server may have overwritten the same file).
-      setAvatarCacheKey(Date.now());
-      // Persist the new picture URL into AuthContext + localStorage so a
-      // page refresh hydrates with the new image immediately instead of
-      // re-requesting the previous one (which may now 404 because the
-      // backend deletes the old file on replace).
-      if (updatedUser?.profilePicture !== undefined) {
-        updateUser({
-          profilePicture: updatedUser.profilePicture,
-          avatar: updatedUser.avatar,
-        });
+      // Upload straight to the S3-backed endpoint (POST /api/upload/avatar).
+      // multer-s3 stores the object and returns the public URL as `avatarUrl`,
+      // which the handler also persists to User.avatarUrl.
+      //
+      // NOTE: we build the absolute URL from API_BASE_URL (not a bare
+      // '/api/upload/avatar') because in prod the API lives on a different
+      // origin (api.nettwin…) than the frontend — a relative fetch would hit
+      // the FE host and 404. Content-Type is intentionally left unset so the
+      // browser adds the multipart boundary itself.
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch(`${API_BASE_URL}/upload/avatar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('The server rejected the file as too large. Try an image under 100 KB.');
+        }
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || errBody?.message || 'Failed to upload profile picture');
       }
+
+      const { avatarUrl } = await res.json();
+
+      // The S3 URL is absolute and unique per upload — show it directly.
+      setAvatarSrc(avatarUrl);
+      setUserProfile((prev) => (prev ? { ...prev, avatarUrl } : prev));
 
       toast({
         title: 'Success',
@@ -1413,15 +1434,9 @@ const Dashboard = () => {
 
       setIsProfileModalOpen(false);
     } catch (error: any) {
-      const status = error?.response?.status;
-      const serverMsg = error?.response?.data?.message;
-      const description =
-        status === 413
-          ? 'The server rejected the file as too large. Try an image under 5 MB.'
-          : serverMsg || error?.message || 'Failed to upload profile picture';
       toast({
         title: 'Upload failed',
-        description,
+        description: error?.message || 'Failed to upload profile picture',
         variant: 'destructive',
       });
     } finally {
@@ -1521,20 +1536,23 @@ const Dashboard = () => {
     );
   };
 
-  // Build the avatar src for an <img> tag.
-  //   • server-uploaded profilePicture → prefix IMAGE_BASE_URL + cache-bust
-  //   • OAuth `avatar` (absolute URL)  → use as-is
-  //   • otherwise                       → null (caller renders initials)
-  const getAvatarSrc = (): string | null => {
-    if (!userProfile) return null;
-    if (userProfile.profilePicture) {
-      const sep = userProfile.profilePicture.includes('?') ? '&' : '?';
-      return `${IMAGE_BASE_URL}${userProfile.profilePicture}${sep}v=${avatarCacheKey}`;
+  // Resolve the best avatar URL for a given user, in priority order:
+  //   • avatarUrl (new S3 upload)       → absolute public URL, use as-is
+  //   • profilePicture (legacy /uploads) → prefix IMAGE_BASE_URL
+  //   • avatar (OAuth, absolute URL)     → use as-is
+  //   • otherwise                        → null (view renders initials)
+  // Takes the user explicitly (rather than reading `userProfile` state) so it
+  // can run inside fetchUserProfile before that state has committed.
+  const resolveAvatarSrc = (user: UserProfile | null): string | null => {
+    if (!user) return null;
+    if (user.avatarUrl) return user.avatarUrl;
+    if (user.profilePicture) {
+      return `${IMAGE_BASE_URL}${user.profilePicture}`;
     }
-    if (userProfile.avatar) {
-      return /^https?:\/\//i.test(userProfile.avatar)
-        ? userProfile.avatar
-        : `${IMAGE_BASE_URL}${userProfile.avatar}`;
+    if (user.avatar) {
+      return /^https?:\/\//i.test(user.avatar)
+        ? user.avatar
+        : `${IMAGE_BASE_URL}${user.avatar}`;
     }
     return null;
   };
@@ -1554,8 +1572,6 @@ const Dashboard = () => {
     qualified: getStatusCount('qualified'),
     converted: getStatusCount('converted'),
   };
-
-  const avatarSrc = getAvatarSrc();
 
   return (
     <>

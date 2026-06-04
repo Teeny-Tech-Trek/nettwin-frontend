@@ -230,14 +230,40 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function RecList({ items }: { items: { name: string; why: string }[] }) {
+function Bullets({ items }: { items?: string[] }) {
+  if (!items?.length) return null;
+  return (
+    <ul className="list-disc pl-5 space-y-1 text-slate-200">
+      {items.map((b, i) => (<li key={i}>{b}</li>))}
+    </ul>
+  );
+}
+
+function ServiceList({ items }: { items?: { title: string; description?: string; businessValue?: string }[] }) {
   if (!items?.length) return <div className="text-slate-500 text-xs">—</div>;
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {items.map((r, i) => (
         <li key={i} className="text-slate-200">
-          <span className="font-medium">{r.name}</span>
-          {r.why ? <span className="text-slate-400"> — {r.why}</span> : null}
+          <span className="font-medium">{r.title}</span>
+          {r.description ? <span className="text-slate-400"> — {r.description}</span> : null}
+          {r.businessValue ? <div className="text-teal-300/90 text-xs mt-0.5">Impact: {r.businessValue}</div> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function HowHelpsList({ items }: { items?: { capability: string; problem?: string; solution?: string; outcome?: string }[] }) {
+  if (!items?.length) return <div className="text-slate-500 text-xs">—</div>;
+  return (
+    <ul className="space-y-2.5">
+      {items.map((h, i) => (
+        <li key={i} className="rounded-lg bg-black/20 border border-white/5 p-2.5">
+          <div className="text-slate-100 font-semibold text-sm">{h.capability}</div>
+          {h.problem ? <div className="text-xs mt-1"><span className="text-amber-300/90 font-semibold">Problem:</span> <span className="text-slate-300">{h.problem}</span></div> : null}
+          {h.solution ? <div className="text-xs mt-0.5"><span className="text-cyan-300/90 font-semibold">Solution:</span> <span className="text-slate-300">{h.solution}</span></div> : null}
+          {h.outcome ? <div className="text-xs mt-0.5"><span className="text-teal-300/90 font-semibold">Outcome:</span> <span className="text-slate-300">{h.outcome}</span></div> : null}
         </li>
       ))}
     </ul>
@@ -254,9 +280,14 @@ function AnalysisView({ analysis, emails }: { analysis: any; emails?: any[] }) {
   const likelihood = String(analysis.meetingLikelihood || "").toLowerCase();
   return (
     <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 pt-2">
-      {/* Triage header: business category + meeting potential */}
-      {(analysis.businessCategory || likelihood) && (
+      {/* Triage header: company / category + meeting potential */}
+      {(analysis.businessCategory || analysis.companyName || likelihood) && (
         <div className="sm:col-span-2 flex flex-wrap items-center gap-2 mb-1">
+          {analysis.companyName && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-200 border border-cyan-500/30">
+              {analysis.companyName}
+            </span>
+          )}
           {analysis.businessCategory && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">
               {analysis.businessCategory}
@@ -269,54 +300,36 @@ function AnalysisView({ analysis, emails }: { analysis: any; emails?: any[] }) {
           )}
         </div>
       )}
-      <div className="sm:col-span-2">
-        <Block title="Professional Summary">
-          <p className="text-slate-200 leading-relaxed">{analysis.professionalSummary || "—"}</p>
-        </Block>
-      </div>
-      {analysis.keyObservations?.length > 0 && (
+      {analysis.businessSnapshot && (
         <div className="sm:col-span-2">
-          <Block title="Key Observations">
-            <ul className="list-disc pl-5 space-y-1 text-slate-200">
-              {analysis.keyObservations.map((o: string, i: number) => (<li key={i}>{o}</li>))}
-            </ul>
+          <Block title="Business Snapshot">
+            <p className="text-slate-200 leading-relaxed">{analysis.businessSnapshot}</p>
           </Block>
         </div>
       )}
-      {analysis.topOpportunities?.length > 0 && (
-        <div className="sm:col-span-2">
-          <Block title="Top Opportunities">
-            <ul className="space-y-1.5">
-              {analysis.topOpportunities.map((o: any, i: number) => (
-                <li key={i} className="text-slate-200">
-                  {o.type ? <span className="text-[10px] uppercase tracking-wider text-fuchsia-300/80 mr-1">{o.type}</span> : null}
-                  <span className="font-medium">{o.title}</span>
-                  {o.description ? <span className="text-slate-400"> — {o.description}</span> : null}
-                </li>
-              ))}
-            </ul>
-          </Block>
-        </div>
+      {analysis.aiFindings?.length > 0 && (
+        <div className="sm:col-span-2"><Block title="AI Findings"><Bullets items={analysis.aiFindings} /></Block></div>
+      )}
+      {analysis.whyRelevant?.length > 0 && (
+        <div className="sm:col-span-2"><Block title="Why It Matters"><Bullets items={analysis.whyRelevant} /></Block></div>
+      )}
+      {analysis.howOwnerHelps?.length > 0 && (
+        <div className="sm:col-span-2"><Block title="How You Can Help"><HowHelpsList items={analysis.howOwnerHelps} /></Block></div>
       )}
       <Block title="Recommended Services">
-        <RecList items={analysis.recommendedServices} />
+        <ServiceList items={analysis.recommendedServices} />
       </Block>
       <Block title="Recommended Products">
-        <RecList items={analysis.recommendedProducts} />
+        {analysis.recommendedProducts?.length ? (
+          <ul className="space-y-1.5 text-slate-200">
+            {analysis.recommendedProducts.map((p: any, i: number) => (
+              <li key={i}><span className="font-medium">{p.title}</span>{p.description ? <span className="text-slate-400"> — {p.description}</span> : null}</li>
+            ))}
+          </ul>
+        ) : <div className="text-slate-500 text-xs">—</div>}
       </Block>
-      <div className="sm:col-span-2">
-        <Block title="Opportunity Analysis">
-          <p className="text-slate-200 leading-relaxed">{analysis.opportunityAnalysis || "—"}</p>
-        </Block>
-      </div>
-      {analysis.nextSteps?.length > 0 && (
-        <div className="sm:col-span-2">
-          <Block title="Next Steps">
-            <ul className="list-disc pl-5 space-y-1 text-slate-200">
-              {analysis.nextSteps.map((s: string, i: number) => (<li key={i}>{s}</li>))}
-            </ul>
-          </Block>
-        </div>
+      {analysis.expectedOutcomes?.length > 0 && (
+        <div className="sm:col-span-2"><Block title="Expected Outcomes"><Bullets items={analysis.expectedOutcomes} /></Block></div>
       )}
       {analysis.meetingRationale && (
         <div className="sm:col-span-2">
@@ -325,20 +338,9 @@ function AnalysisView({ analysis, emails }: { analysis: any; emails?: any[] }) {
           </Block>
         </div>
       )}
-      {analysis.businessRecommendations?.length > 0 && (
-        <div className="sm:col-span-2">
-          <Block title="Business Recommendations">
-            <ul className="list-disc pl-5 space-y-1 text-slate-200">
-              {analysis.businessRecommendations.map((b: string, i: number) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
-          </Block>
-        </div>
-      )}
       {analysis.meetingRecommendation && (
         <div className="sm:col-span-2">
-          <Block title="Meeting Recommendation">
+          <Block title="Suggested Next Step">
             <p className="text-slate-200 leading-relaxed">{analysis.meetingRecommendation}</p>
           </Block>
         </div>
