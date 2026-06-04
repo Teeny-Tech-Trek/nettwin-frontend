@@ -62,6 +62,9 @@ export interface UserProfile {
   email: string;
   profilePicture?: string;
   avatar?: string;
+  // Public S3 URL set by POST /api/upload/avatar (User.avatarUrl on the
+  // backend). Takes precedence over profilePicture/avatar when present.
+  avatarUrl?: string;
 }
 
 // Precomputed lead counts by status (built in the container from the real

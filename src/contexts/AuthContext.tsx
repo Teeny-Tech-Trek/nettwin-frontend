@@ -229,6 +229,9 @@ interface User {
   email: string;
   avatar?: string;
   profilePicture?: string;
+  // Public S3 URL set by the avatar upload (POST /api/upload/avatar →
+  // User.avatarUrl). Takes precedence over profilePicture/avatar when present.
+  avatarUrl?: string | null;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
 }

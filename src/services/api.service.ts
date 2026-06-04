@@ -64,23 +64,25 @@ export const authService = {
     return response.data;
   },
 
-  // Update profile picture
+  // Update profile picture — uploads to S3 via POST /api/upload/avatar.
+  // The handler stores the object on S3 and saves the public URL to
+  // User.avatarUrl, returning { success, avatarUrl, user }. (The old
+  // disk-based PUT /auth/profile/picture route has been removed.)
+  // Note: do NOT set Content-Type — axios derives the multipart boundary
+  // from the FormData body automatically.
   updateProfilePicture: async (file: File) => {
     const formData = new FormData();
-    formData.append('profilePicture', file);
+    formData.append('avatar', file);
 
-    const response = await axiosInstance.put('/auth/profile/picture', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axiosInstance.post('/upload/avatar', formData);
     return response.data;
   },
 
-  // Remove the current profile picture (server deletes the file and
-  // clears the user.profilePicture field). Returns the updated user.
+  // Remove the current profile picture — clears User.avatarUrl (and the
+  // legacy profilePicture) via DELETE /api/upload/avatar. Returns the
+  // updated user.
   removeProfilePicture: async () => {
-    const response = await axiosInstance.delete('/auth/profile/picture');
+    const response = await axiosInstance.delete('/upload/avatar');
     return response.data;
   },
 
