@@ -1179,6 +1179,9 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  // Inline (in-UI) upload error shown inside the profile-photo modal, in
+  // addition to the toast, so the rejection reason is visible in place.
+  const [uploadError, setUploadError] = useState<string | null>(null);
   // Resolved avatar URL handed to <DashboardView>. Seeded on profile fetch and
   // updated after a successful S3 upload. Holds either the new public S3 URL
   // (User.avatarUrl), a legacy /uploads profilePicture, or an OAuth avatar —
@@ -1361,34 +1364,30 @@ const Dashboard = () => {
   };
 
   // Profile picture upload. Client-side validations give instant feedback
-  // before we hit the network. Keep this aligned with the backend multer
-  // limit in uploadMiddleware.js.
-  const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+  // before we hit the network. Hard cap: 100 KB.
+  const MAX_AVATAR_BYTES = 100 * 1024;
 
   const handleProfilePictureUpload = async (file: File) => {
+    // Clear any previous inline error before re-validating.
+    setUploadError(null);
+
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Unsupported file',
-        description: 'Please choose an image file (JPG, PNG, WebP, or GIF).',
-        variant: 'destructive',
-      });
+      const msg = 'Please choose an image file (JPG, PNG, WebP, or GIF).';
+      setUploadError(msg);
+      toast({ title: 'Unsupported file', description: msg, variant: 'destructive' });
       return;
     }
     if (file.size === 0) {
-      toast({
-        title: 'Empty file',
-        description: 'That file appears to be empty. Try a different image.',
-        variant: 'destructive',
-      });
+      const msg = 'That file appears to be empty. Try a different image.';
+      setUploadError(msg);
+      toast({ title: 'Empty file', description: msg, variant: 'destructive' });
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      const mb = (file.size / 1024 / 1024).toFixed(1);
-      toast({
-        title: 'File too large',
-        description: `Profile pictures must be 100 KB or less — yours is ${kb} KB.`,
-        variant: 'destructive',
-      });
+      const kb = (file.size / 1024).toFixed(1);
+      const msg = `Image size should not be more than 100 KB — yours is ${kb} KB.`;
+      setUploadError(msg);
+      toast({ title: 'File too large', description: msg, variant: 'destructive' });
       return;
     }
 
@@ -1427,6 +1426,7 @@ const Dashboard = () => {
       // The S3 URL is absolute and unique per upload — show it directly.
       setAvatarSrc(avatarUrl);
       setUserProfile((prev) => (prev ? { ...prev, avatarUrl } : prev));
+      setUploadError(null);
 
       toast({
         title: 'Success',
@@ -1435,11 +1435,9 @@ const Dashboard = () => {
 
       setIsProfileModalOpen(false);
     } catch (error: any) {
-      toast({
-        title: 'Upload failed',
-        description: error?.message || 'Failed to upload profile picture',
-        variant: 'destructive',
-      });
+      const msg = error?.message || 'Failed to upload profile picture';
+      setUploadError(msg);
+      toast({ title: 'Upload failed', description: msg, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
@@ -1604,6 +1602,7 @@ const Dashboard = () => {
       userMenuOpen={userMenuOpen}
       mobileMenuOpen={mobileMenuOpen}
       isProfileModalOpen={isProfileModalOpen}
+      uploadError={uploadError}
       // ref
       fileInputRef={fileInputRef}
       // helpers
@@ -1613,9 +1612,16 @@ const Dashboard = () => {
       onCloseUserMenu={() => setUserMenuOpen(false)}
       onToggleMobileMenu={() => setMobileMenuOpen((o) => !o)}
       onCloseMobileMenu={() => setMobileMenuOpen(false)}
-      onOpenProfileModal={() => setIsProfileModalOpen(true)}
-      onCloseProfileModal={() => setIsProfileModalOpen(false)}
+      onOpenProfileModal={() => {
+        setUploadError(null);
+        setIsProfileModalOpen(true);
+      }}
+      onCloseProfileModal={() => {
+        setUploadError(null);
+        setIsProfileModalOpen(false);
+      }}
       onUpdatePhoto={() => {
+        setUploadError(null);
         setUserMenuOpen(false);
         setIsProfileModalOpen(true);
       }}

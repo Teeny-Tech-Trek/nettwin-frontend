@@ -35,6 +35,8 @@ export interface DashboardViewProps {
   userMenuOpen: boolean;
   mobileMenuOpen: boolean;
   isProfileModalOpen: boolean;
+  // Inline upload error shown inside the profile-picture modal (null = none).
+  uploadError: string | null;
   fileInputRef: React.RefObject<HTMLInputElement>;
   twinPublicUrl: (id: string) => string;
   onToggleUserMenu: () => void;
@@ -294,8 +296,8 @@ const DashboardHeader = (props: DashboardViewProps) => {
 
 // ─── Profile modal ────────────────────────────────────────────────────────
 const ProfilePictureModal = ({
-  isOpen, isUploading, fileInputRef, onFileSelect, onChoosePhoto, onClose,
-}: Pick<DashboardViewProps, 'isUploading' | 'fileInputRef' | 'onFileSelect' | 'onChoosePhoto'> & {
+  isOpen, isUploading, uploadError, fileInputRef, onFileSelect, onChoosePhoto, onClose,
+}: Pick<DashboardViewProps, 'isUploading' | 'uploadError' | 'fileInputRef' | 'onFileSelect' | 'onChoosePhoto'> & {
   isOpen: boolean; onClose: () => void;
 }) => (
   <AnimatePresence>
@@ -311,6 +313,7 @@ const ProfilePictureModal = ({
             <h3 className="text-2xl font-bold text-white mb-2">Add Profile Picture</h3>
             <p className="text-sm text-slate-300/80 mb-7 leading-relaxed">
               Make your profile stand out with a professional photo
+              <span className="block mt-1 text-xs text-slate-400">JPG, PNG, WebP, or GIF · Max 100 KB</span>
             </p>
             <input type="file" ref={fileInputRef} onChange={onFileSelect} accept="image/*" className="hidden" />
             <button onClick={onChoosePhoto} disabled={isUploading}
@@ -322,6 +325,11 @@ const ProfilePictureModal = ({
                 </span>
               ) : 'Choose Photo'}
             </button>
+            {uploadError && (
+              <p className="text-sm text-red-400 mb-3 -mt-1" role="alert">
+                {uploadError}
+              </p>
+            )}
             <button onClick={onClose} disabled={isUploading}
               className="w-full text-slate-300/70 py-3.5 rounded-2xl font-medium hover:bg-white/[0.05] transition border border-white/[0.08] text-sm">
               Skip for now
@@ -934,6 +942,7 @@ const DashboardView = (props: DashboardViewProps) => {
       <ProfilePictureModal
         isOpen={props.isProfileModalOpen}
         isUploading={props.isUploading}
+        uploadError={props.uploadError}
         fileInputRef={props.fileInputRef}
         onFileSelect={props.onFileSelect}
         onChoosePhoto={props.onChoosePhoto}
