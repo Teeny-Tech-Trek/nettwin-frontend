@@ -6,7 +6,7 @@ import React from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const HeaderCubeImg = "./FeaturePage/https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeaderCubeImg.webp";
+const HeaderCubeImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeaderCubeImg.webp";
 const HeaderHeadImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeaderHeadImg.webp";
 const BrainImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/BrainImg.webp";
 const QrImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/QrImg.webp";
