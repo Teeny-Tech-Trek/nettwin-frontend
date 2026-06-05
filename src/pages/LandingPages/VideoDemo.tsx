@@ -233,7 +233,7 @@ const VideoDemo = () => {
                     loop
                     playsInline
                     preload="auto"
-                    src="/NetTwinVideo.MP4"
+                    src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/Video/NetTwinVideo%20%281%29%20%281%29.mp4"
                   >
                     Your browser does not support the video tag.
                   </video>
