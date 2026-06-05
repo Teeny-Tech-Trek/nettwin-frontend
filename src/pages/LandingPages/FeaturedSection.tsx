@@ -6,14 +6,14 @@ import React from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const HeaderCubeImg = "./FeaturePage/HeaderCubeImg.png";
-const HeaderHeadImg = "./FeaturePage/HeaderHeadImg.png";
-const BrainImg = "./FeaturePage/BrainImg.png";
-const QrImg = "./FeaturePage/QrImg.png";
-const ClockImg = "./FeaturePage/ClockImg.png";
-const ShieldImg = "./FeaturePage/ShieldImg.png";
-const LightningImg = "./FeaturePage/LightningImg.png";
-const GroupImg = "./FeaturePage/GroupImg.png";
+const HeaderCubeImg = "./FeaturePage/https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeaderCubeImg.webp";
+const HeaderHeadImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeaderHeadImg.webp";
+const BrainImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/BrainImg.webp";
+const QrImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/QrImg.webp";
+const ClockImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/ClockImg.webp";
+const ShieldImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/ShieldImg.webp";
+const LightningImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/LightningImg.webp";
+const GroupImg = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/GroupImg.webp";
 
 
 const ALL_IMAGES = [

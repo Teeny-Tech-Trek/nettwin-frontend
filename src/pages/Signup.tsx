@@ -19,34 +19,34 @@ const SIGNUP_FEATURES = [
   {
     title: "AI-Powered Intelligence",
     description: "Learns your unique style",
-    image: "/FeaturePage/BrainImg.png",
+    image: "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/BrainImg.webp",
   },
   {
     title: "Instant QR Access",
     description: "Unique QR per client",
-    image: "/FeaturePage/QrImg.png",
+    image: "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/QrImg.webp",
   },
   {
     title: "24/7 Availability",
     description: "Always on, never offline",
-    image: "/FeaturePage/ClockImg.png",
+    image: "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/ClockImg.webp",
   },
   {
     title: "Secure & Private",
     description: "Enterprise-grade encrypted data",
-    image: "/FeaturePage/ShieldImg.png",
+    image: "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/ShieldImg.webp",
   },
   {
       title: "Instant Responses",
       description:
         "Provide immediate, intelligent responses to inquiries.",
-      image: "/FeaturePage/LightningImg.png",
+      image: "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/LightningImg.webp",
     },
     {
       title: "Multi-Client Management",
       description:
         "Manage multiple digital twins.",
-      image: "/FeaturePage/GroupImg.png",
+      image: "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/GroupImg.webp",
     },
 
 ];
@@ -321,7 +321,7 @@ const Signup = () => {
               }}
             >
               <img
-                src="/logo.png"
+                src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp"
                 alt="logo"
                 className="w-full h-full object-contain p-2"
                 draggable={false}
