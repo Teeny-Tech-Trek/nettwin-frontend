@@ -1,5 +1,5 @@
 // src/services/api.service.ts
-import axiosInstance from '@/axios.config';
+import axiosInstance, { API_BASE_URL } from '@/axios.config';
 
 // ==================== AUTH SERVICES ====================
 export const authService = {
@@ -288,6 +288,110 @@ export const chatService = {
       body,
     );
     return response.data;
+  },
+
+  // Streaming variant — opens the backend SSE proxy and invokes `onToken` for
+  // each token as it arrives. Resolves with the final reply + citations.
+  //
+  // Throws on failure with an error carrying `.status` (HTTP), `.code`
+  // (server error code, e.g. QUOTA_EXCEEDED), `.fallback` (server hint), and
+  // `.streamedAny` (did any token arrive). Callers should fall back to
+  // `sendMessage` when nothing was streamed. The reader is always released
+  // (no socket/stream leak) even on early throw.
+  streamMessage: async (
+    data: {
+      twinId: string;
+      messages: Array<{ role: string; content: string }>;
+      userEmail: string;
+      sessionId?: string;
+    },
+    onToken: (text: string) => void,
+  ): Promise<{ reply: string; citations: unknown[] }> => {
+    const token = localStorage.getItem('token');
+    const resp = await fetch(`${API_BASE_URL}/v1/twins/${data.twinId}/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        twinId: data.twinId,
+        messages: data.messages,
+        userEmail: data.userEmail,
+        sessionId: data.sessionId,
+        session_id: data.sessionId,
+      }),
+    });
+
+    if (!resp.ok || !resp.body) {
+      const err: any = new Error(`stream_http_${resp.status}`);
+      err.status = resp.status;
+      err.streamedAny = false;
+      try {
+        const j = await resp.json();
+        err.code = j?.error;
+        err.fallback = j?.fallback;
+      } catch {
+        /* non-JSON body */
+      }
+      throw err;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let full = '';
+    let citations: unknown[] = [];
+    let doneAnswer: string | null = null;
+
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let sep: number;
+        while ((sep = buffer.indexOf('\n\n')) !== -1) {
+          const frame = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          let event = 'message';
+          let dataStr = '';
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) event = line.slice(6).trim();
+            else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
+          }
+          if (!dataStr) continue;
+          let payload: any;
+          try {
+            payload = JSON.parse(dataStr);
+          } catch {
+            continue;
+          }
+          if (event === 'token' && typeof payload.text === 'string') {
+            full += payload.text;
+            onToken(payload.text);
+          } else if (event === 'done') {
+            doneAnswer = payload.answer ?? full;
+            citations = payload.citations || [];
+          } else if (event === 'error') {
+            const err: any = new Error('stream_error');
+            err.fallback = payload.fallback;
+            err.streamedAny = full.length > 0;
+            throw err;
+          }
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+        /* already released */
+      }
+    }
+
+    return { reply: (doneAnswer ?? full) || '', citations };
   },
 };
 

@@ -1227,20 +1227,20 @@ const Chatbot = () => {
         const result = await digitalTwinService.getPublic(id!);
         const twin = result.data;
         if (!twin || !twin.identity || !twin.identity.name) {
-          throw new Error("Digital twin data is missing required fields");
+          throw new Error("Net twin data is missing required fields");
         }
         setAgent(twin);
         setMessages([
           {
             id: "1",
             role: "assistant",
-            content: `Hello! I'm the digital twin of ${twin.identity.name}, ${twin.identity.role}. ${twin.identity.tagline || 'I can share insights on my expertise, businesses, and collaboration opportunities.'} What sparks your interest today?`,
+            content: `Hello! I'm the net twin of ${twin.identity.name}, ${twin.identity.role}. ${twin.identity.tagline || 'I can share insights on my expertise, businesses, and collaboration opportunities.'} What sparks your interest today?`,
             timestamp: new Date(),
           },
         ]);
       } catch (err: any) {
         console.error("Failed to fetch public agent:", err);
-        setError(err.message || "Unable to load digital twin.");
+        setError(err.message || "Unable to load net twin.");
       }
     };
     fetchAgent();
@@ -1281,57 +1281,115 @@ const Chatbot = () => {
       setTimeout(() => setShowLeadModal(true), 1000);
     }
 
-    try {
-      const data = await chatService.sendMessage({
-        twinId: agent._id,
-        messages: [
-          ...messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          { role: "user", content: messageContent },
-        ],
-        userEmail: userProfile?.email || "guest@example.com",
-        sessionId,
-      });
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.reply || "I'm processing that strategically—let's refine your query for deeper insights.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (err: any) {
-      console.error("Chat API error:", err);
-      // Quota exceeded — the owner has hit their plan's monthly message
-      // limit. Surface a clear "currently not available" message instead
-      // of the generic error, and freeze further sends for this session.
-      const status = err?.response?.status;
-      const code = err?.response?.data?.error;
-      if (status === 429 || code === "QUOTA_EXCEEDED") {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 3).toString(),
-            role: "assistant",
-            content:
-              "This digital twin is currently not available — its owner has reached their monthly chat limit. Please check back after their next renewal, or reach out to them directly.",
-            timestamp: new Date(),
-          },
-        ]);
-        setQuotaExceeded(true);
-        return;
-      }
+    const apiMessages = [
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: messageContent },
+    ];
+    const apiUserEmail = userProfile?.email || "guest@example.com";
+    // Stable id for the assistant reply so streaming tokens and the
+    // (possible) non-streaming fallback both target the same bubble.
+    const assistantId = (Date.now() + 1).toString();
+
+    const isQuota = (e: any) =>
+      (e?.status || e?.response?.status) === 429 ||
+      e?.code === "QUOTA_EXCEEDED" ||
+      e?.response?.data?.error === "QUOTA_EXCEEDED";
+
+    const showQuota = () => {
       setMessages((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== assistantId || (m.content && m.content.trim())),
         {
-          id: (Date.now() + 2).toString(),
+          id: (Date.now() + 3).toString(),
           role: "assistant",
-          content: "Apologies—my network glitched. As an experienced advisor, let's pivot: What's your core business challenge?",
+          content:
+            "This net twin is currently not available — its owner has reached their monthly chat limit. Please check back after their next renewal, or reach out to them directly.",
           timestamp: new Date(),
         },
       ]);
+      setQuotaExceeded(true);
+    };
+
+    const ensurePlaceholder = () =>
+      setMessages((prev) =>
+        prev.some((m) => m.id === assistantId)
+          ? prev
+          : [
+              ...prev,
+              { id: assistantId, role: "assistant", content: "", timestamp: new Date() } as Message,
+            ],
+      );
+
+    // Existing non-streaming path — the reliable fallback. Never empty.
+    const runFallback = async () => {
+      const data = await chatService.sendMessage({
+        twinId: agent._id,
+        messages: apiMessages,
+        userEmail: apiUserEmail,
+        sessionId,
+      });
+      const reply =
+        data.reply ||
+        "Sorry, I didn't quite catch that — could you rephrase? Happy to talk about my work, projects, or background.";
+      setMessages((prev) =>
+        prev.some((m) => m.id === assistantId)
+          ? prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m))
+          : [...prev, { id: assistantId, role: "assistant", content: reply, timestamp: new Date() } as Message],
+      );
+    };
+
+    try {
+      // Stream first (ChatGPT/Claude-style live typing).
+      const { reply } = await chatService.streamMessage(
+        { twinId: agent._id, messages: apiMessages, userEmail: apiUserEmail, sessionId },
+        (text) => {
+          ensurePlaceholder();
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: (m.content || "") + text } : m)),
+          );
+        },
+      );
+
+      if (reply && reply.trim()) {
+        ensurePlaceholder();
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m)));
+      } else {
+        // Nothing usable streamed → fall back to the non-streaming endpoint.
+        await runFallback();
+      }
+    } catch (err: any) {
+      console.error("Chat stream error:", err);
+      if (isQuota(err)) {
+        showQuota();
+        return;
+      }
+      // If some tokens already rendered, keep them. Otherwise fall back.
+      if (!err?.streamedAny) {
+        try {
+          await runFallback();
+        } catch (err2: any) {
+          if (isQuota(err2)) {
+            showQuota();
+            return;
+          }
+          // T7: BYOK provider error (owner's key quota/invalid) — show the
+          // actionable message from the API instead of a generic hiccup.
+          const byokMsg =
+            err2?.response?.data?.error === "BYOK_PROVIDER_ERROR"
+              ? err2?.response?.data?.message
+              : null;
+          setMessages((prev) => [
+            ...prev.filter((m) => m.id !== assistantId || (m.content && m.content.trim())),
+            {
+              id: (Date.now() + 2).toString(),
+              role: "assistant",
+              content:
+                byokMsg ||
+                "Hmm, I had a brief connection hiccup on my end. Mind sending that again? I'm keen to help.",
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      }
     } finally {
       setLoading(false);
     }

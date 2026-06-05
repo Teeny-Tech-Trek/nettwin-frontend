@@ -20,6 +20,7 @@ interface PMLead {
   linkedinUrl?: string | null;
   status: string;
   processingStatus: string;
+  errorReason?: string;
   createdAt: string;
   lastAnalyzedAt?: string | null;
   // Denormalized analysis summary (visible without expanding the lead).
@@ -201,6 +202,15 @@ export default function ProfileMatchingLeads({ twinId }: { twinId: string }) {
                   <div className="px-5 pb-5 pt-1 text-sm bg-black/20">
                     {detailLoading ? (
                       <div className="text-slate-400 text-xs py-3">Loading analysis…</div>
+                    ) : lead.processingStatus === "failed" ? (
+                      <div className="text-xs py-3">
+                        <div className="text-red-300 font-medium mb-1">Analysis failed</div>
+                        <div className="text-slate-400">
+                          {lead.errorReason
+                            ? lead.errorReason
+                            : "Something went wrong analyzing this lead. Re-submitting may resolve it."}
+                        </div>
+                      </div>
                     ) : !detail?.analysis ? (
                       <div className="text-slate-400 text-xs py-3">
                         {lead.processingStatus === "analyzed"
