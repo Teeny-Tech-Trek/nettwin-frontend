@@ -1670,7 +1670,7 @@ const Chatbot = () => {
                   />
                 ) : (
                   <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center">
-                    <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
+                    <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp" alt="logo" className="w-full h-full object-contain" />
                   </div>
                 )}
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white" />
@@ -1743,7 +1743,7 @@ const Chatbot = () => {
                           />
                         ) : (
                           <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
-                            <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
+                            <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp" alt="logo" className="w-full h-full object-contain" />
                           </div>
                         )
                       ) : (
