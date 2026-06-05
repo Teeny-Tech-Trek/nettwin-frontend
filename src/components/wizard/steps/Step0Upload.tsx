@@ -39,6 +39,12 @@ const POLL_INTERVAL_MS = 5000;
 const POLL_MAX_INTERVAL_MS = 20000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes per source
 
+// After a job reports "done", the extracted profile can take a beat to become
+// readable (or extraction was thin). Poll briefly so the first attempt
+// auto-fills a populated form instead of racing an empty read.
+const PROFILE_READY_TRIES = 5;
+const PROFILE_READY_DELAY_MS = 1500;
+
 const initialTracker: SourceTracker = { state: "idle", progress: 0, stage: "", error: null };
 
 export const Step0Upload = ({ onComplete }: Step0UploadProps) => {
@@ -136,6 +142,28 @@ export const Step0Upload = ({ onComplete }: Step0UploadProps) => {
     }
   };
 
+  // Poll the extracted profile until it is actually populated (or we run out of
+  // tries), instead of a single best-effort read that can land before the
+  // worker has finished writing it.
+  const fetchExtractedProfileReady = async (): Promise<any> => {
+    let last: any = {};
+    for (let i = 0; i < PROFILE_READY_TRIES; i++) {
+      if (cancelled.current) return last;
+      try {
+        const profRes = await digitalTwinService.extractedProfile();
+        const prof = profRes?.data?.profile || {};
+        last = prof;
+        if (profRes?.data?.extracted && hasMeaningfulProfile(prof)) return prof;
+      } catch {
+        // transient — retry
+      }
+      if (i < PROFILE_READY_TRIES - 1) {
+        await new Promise((r) => setTimeout(r, PROFILE_READY_DELAY_MS));
+      }
+    }
+    return last;
+  };
+
   const fetchAndContinue = async () => {
     setFinalizing(true);
     try {
@@ -144,13 +172,10 @@ export const Step0Upload = ({ onComplete }: Step0UploadProps) => {
       const twinRes = await digitalTwinService.get();
       const twin = twinRes?.data;
 
-      let extracted: any = {};
-      try {
-        const profRes = await digitalTwinService.extractedProfile();
-        extracted = profRes?.data?.profile || {};
-      } catch {
-        // ignore — fall back to twin
-      }
+      // Wait for the extracted profile to be ready so the first attempt
+      // auto-fills a populated form (was a single fetch that could race the
+      // worker write and produce an empty/partial form).
+      const extracted = await fetchExtractedProfileReady();
 
       const merged = mergeProfiles(
         twin ? stripPlaceholders(twin) : {},
@@ -369,6 +394,21 @@ function isEmpty(v: any): boolean {
   if (typeof v === "string") return v.trim() === "";
   if (Array.isArray(v)) return v.length === 0;
   if (typeof v === "object") return Object.keys(v).length === 0;
+  return false;
+}
+
+// True once the extracted profile carries real (non-placeholder) content — the
+// signal that auto-fill will be meaningful, used to decide when to stop polling.
+function hasMeaningfulProfile(p: any): boolean {
+  if (!p || typeof p !== "object") return false;
+  const id = p.identity || {};
+  if ((id.name && id.name !== "Draft Twin") || (id.role && id.role !== "Draft") || id.bio) {
+    return true;
+  }
+  if (Array.isArray(p.experience) && p.experience.length) return true;
+  if (Array.isArray(p.education) && p.education.length) return true;
+  if (Array.isArray(p.businesses) && p.businesses.length) return true;
+  if (Array.isArray(p.skills?.list) && p.skills.list.length) return true;
   return false;
 }
 

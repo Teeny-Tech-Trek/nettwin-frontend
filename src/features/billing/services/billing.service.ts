@@ -12,6 +12,7 @@ import type {
   CreateOrderResponse,
   Order,
   Plan,
+  UsageAnalytics,
   VerifyPaymentResponse,
 } from '../types/billing.types';
 
@@ -69,6 +70,13 @@ export const syncSubscription = async (): Promise<VerifyPaymentResponse> => {
   return response.data;
 };
 
+export const getUsageAnalytics = async (): Promise<UsageAnalytics> => {
+  const response = await axiosInstance.get<{ success: boolean; analytics: UsageAnalytics }>(
+    '/billing/usage-analytics'
+  );
+  return response.data.analytics;
+};
+
 export const billingService = {
   getPlans,
   getBillingStatus,
@@ -76,6 +84,7 @@ export const billingService = {
   createOrder,
   verifyPayment,
   syncSubscription,
+  getUsageAnalytics,
 };
 
 export default billingService;

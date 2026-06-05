@@ -56,6 +56,20 @@ export interface Usage {
   leads: UsageMetric;
 }
 
+// ── Usage Analytics (the /api/billing/usage-analytics response) ─────────
+// Lifetime insight metrics (cumulative), distinct from the period-scoped
+// counters in BillingStatus.usage.
+export interface UsageAnalytics {
+  totalConversations: number;
+  totalMessages: number;
+  userMessages: number;
+  aiResponsesGenerated: number;
+  distinctVisitors: number;
+  avgMessagesPerVisitor: number;
+  profileAnalysisCount: number;
+  activeLeads: number;
+}
+
 // ── Billing Status (the /api/billing/status response) ───────────────────
 export interface BillingStatus {
   success: boolean;
