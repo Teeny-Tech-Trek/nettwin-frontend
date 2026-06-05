@@ -1075,6 +1075,9 @@ interface PublicAgent {
   story?: { mission?: string; impact?: string; themes?: string[] };
   personality?: { tone?: string; traits?: string[] };
   user?: {
+    // Public S3 URL of the owner's uploaded photo (preferred). Falls back to
+    // the legacy local-disk profilePicture or an OAuth avatar.
+    avatarUrl?: string;
     profilePicture?: string;
     avatar?: string;
   };
@@ -1386,11 +1389,17 @@ const Chatbot = () => {
 
   const getAgentProfilePicture = () => {
     if (!agent) return null;
-    return agent.user?.profilePicture
-      ? `${IMAGE_BASE_URL}${agent.user.profilePicture}`
-      : agent.user?.avatar
-      ? `${IMAGE_BASE_URL}${agent.user.avatar}`
-      : null;
+    // New S3 upload — absolute, already-public URL.
+    if (agent.user?.avatarUrl) return agent.user.avatarUrl;
+    // Legacy local-disk profile picture (relative path → prefix API origin).
+    if (agent.user?.profilePicture) return `${IMAGE_BASE_URL}${agent.user.profilePicture}`;
+    // OAuth avatar (absolute URL) or relative fallback.
+    if (agent.user?.avatar) {
+      return /^https?:\/\//i.test(agent.user.avatar)
+        ? agent.user.avatar
+        : `${IMAGE_BASE_URL}${agent.user.avatar}`;
+    }
+    return null;
   };
 
   const getUserProfilePicture = () => {

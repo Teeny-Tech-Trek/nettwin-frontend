@@ -71,6 +71,9 @@ export default function ProfileSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  // Inline (in-UI) upload error — shown in red under the photo controls in
+  // addition to the toast, so the user sees why an upload was rejected.
+  const [uploadError, setUploadError] = useState<string | null>(null);
   // Bumped after every successful upload so the <img> refetches even when
   // the path string is identical (server may overwrite the same filename).
   const [avatarCacheKey, setAvatarCacheKey] = useState(0);
@@ -161,21 +164,20 @@ export default function ProfileSettings() {
     event.target.value = '';
     if (!file) return;
 
+    // Clear any previous inline error before re-validating.
+    setUploadError(null);
+
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Unsupported file',
-        description: 'Please choose an image (JPG, PNG, WebP, or GIF).',
-        variant: 'destructive',
-      });
+      const msg = 'Please choose an image (JPG, PNG, WebP, or GIF).';
+      setUploadError(msg);
+      toast({ title: 'Unsupported file', description: msg, variant: 'destructive' });
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
       const kb = (file.size / 1024).toFixed(1);
-      toast({
-        title: 'File too large',
-        description: `Profile pictures must be 100 KB or smaller — yours is ${kb} KB.`,
-        variant: 'destructive',
-      });
+      const msg = `Image size should not be more than 100 KB — yours is ${kb} KB.`;
+      setUploadError(msg);
+      toast({ title: 'File too large', description: msg, variant: 'destructive' });
       return;
     }
 
@@ -206,17 +208,16 @@ export default function ProfileSettings() {
 
       const { avatarUrl } = await resp.json();
       setProfile((prev) => (prev ? { ...prev, avatarUrl } : prev));
+      setUploadError(null);
       // Sync into AuthContext + localStorage so the Dashboard header and any
       // other surface reading `user` from context updates instantly and
       // survives a refresh.
       updateUser({ avatarUrl });
       toast({ title: 'Photo updated', description: 'Profile picture saved.' });
     } catch (err: any) {
-      toast({
-        title: 'Upload failed',
-        description: err?.message || 'Failed to upload photo.',
-        variant: 'destructive',
-      });
+      const msg = err?.message || 'Failed to upload photo.';
+      setUploadError(msg);
+      toast({ title: 'Upload failed', description: msg, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
@@ -389,6 +390,13 @@ export default function ProfileSettings() {
                   </button>
                 )}
               </div>
+
+              {/* Inline upload error (e.g. file too large). */}
+              {uploadError && (
+                <p className="mt-3 text-sm text-red-400 text-center sm:text-left" role="alert">
+                  {uploadError}
+                </p>
+              )}
             </div>
           </div>
         </section>
