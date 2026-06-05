@@ -140,7 +140,7 @@ const Navbar = () => {
                   }}
                 >
                   {/* If using your own logo: */}
-                      <img src="/logo.png" alt="NetTwin" className="w-full h-full object-cover scale-75 rounded-full" />
+                      <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp" alt="NetTwin" className="w-full h-full object-cover scale-75 rounded-full" />
                       {/* Otherwise the SVG below is a placeholder that matches the image. */}
                  
                   {/* <TwinSilhouettes /> */}

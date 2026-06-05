@@ -238,7 +238,7 @@ const HeroSection = () => {
 
   useEffect(() => {
     const img = new Image();
-    img.src = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeroRightSideImage.png";
+    img.src = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeroRightSideImage.webp";
     img.onload = () => setImgLoaded(true);
     if (img.complete) setImgLoaded(true);
   }, []);
@@ -413,7 +413,7 @@ const HeroSection = () => {
 
               {/* Hero image */}
               {imgLoaded && (
-                <motion.img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeroRightSideImage.png" alt="AI Digital Twin"
+                <motion.img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/HeroRightSideImage.webp" alt="AI Digital Twin"
                   loading="eager" decoding="sync" draggable={false}
                   onContextMenu={(e) => e.preventDefault()}
                   className="relative z-[10] w-full h-auto select-none pointer-events-none"

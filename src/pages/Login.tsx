@@ -1,4 +1,4 @@
-const CityIllustration = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/LoginImage2.png";
+const CityIllustration = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/LoginImage2.webp";
 
 import {
   Mail, Lock, Eye, EyeOff, Loader2, Sparkles,
@@ -384,7 +384,7 @@ const Login = () => {
                   className="w-14 h-14 rounded-2xl flex items-center justify-center"
                   
                 >
-                  <img src="/logo.png" alt="logo"
+                  <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp" alt="logo"
                     className="w-full h-full object-contain p-2"
                     draggable={false}/>
                 </div>

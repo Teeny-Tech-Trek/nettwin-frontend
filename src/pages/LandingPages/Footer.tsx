@@ -96,7 +96,7 @@ const AppFooter = () => {
                 }}
               >
                 <img
-                  src="/logo.png"
+                  src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp"
                   alt="NetTwin"
                   className="w-full h-full object-cover"
                 />

@@ -145,7 +145,7 @@ const DashboardHeader = (props: DashboardViewProps) => {
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center">
             <img
-              src="/logo.png"
+              src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp"
               alt="NetTwin"
               className="w-full h-full object-contain"
             />
@@ -408,7 +408,7 @@ const EmptyState = ({ onCreateTwin, onLearnMore }: Pick<DashboardViewProps, 'onC
           {/* Hexagon icon */}
           <div className="relative w-12 h-12 mx-auto mb-6">
             <div className="absolute inset-0 rounded-2xl bg-cyan-400/20 blur-xl" />
-             <img src="/logo.png" alt="logo" />
+             <img src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/logoImg.webp" alt="logo" />
           </div>
 
           <h2 className="text-[22px] font-bold text-white mb-3 tracking-tight font-syne-bold">No Net Twin Yet</h2>

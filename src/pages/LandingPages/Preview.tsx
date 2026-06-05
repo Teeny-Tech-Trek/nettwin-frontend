@@ -70,7 +70,7 @@ const PreviewSection = () => {
 
   useEffect(() => {
     const img = new Image();
-    img.src = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/PreviewSectionPage/dashboardImg.png";
+    img.src = "https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/dashboardImg.webp";
     img.onload = () => setImgLoaded(true);
     if (img.complete) setImgLoaded(true);
   }, []);
@@ -358,7 +358,7 @@ const PreviewSection = () => {
                 style={{ animation: "prev-bounce-3d 4s ease-in-out infinite" }}
               >
                 <img
-                  src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/PreviewSectionPage/dashboardImg.png"
+                  src="https://o8mdvprl6egud6jt.public.blob.vercel-storage.com/dashboardImg.webp"
                   alt="Dashboard Preview"
                   loading="eager"
                   decoding="sync"
