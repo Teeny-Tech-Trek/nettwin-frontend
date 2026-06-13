@@ -19,6 +19,30 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // While the mobile menu is open: lock background scroll (so the page
+  // behind doesn't scroll under the overlay) and allow Escape to close.
+  // The menu itself still scrolls internally via its own overflow-y-auto.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileMenuOpen]);
+
+  // Always close the mobile menu after a route change. Covers every auth /
+  // nav action (Login, Sign Up, etc.) so the menu can never get stuck open
+  // on top of the destination page.
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   // href is `/#section` so right-click → open in new tab still resolves
   // to the home page anchor. We intercept clicks to keep navigation
   // inside the SPA (no full reload) and to handle the cross-page case:
@@ -65,6 +89,24 @@ const Navbar = () => {
 
   return (
     <>
+      {/* Tap-to-dismiss backdrop. Sits below the navbar (z-40 < z-50) so the
+          pill and the open menu stay fully interactive, while a tap anywhere
+          else closes the menu. Mobile only. */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+            className="lg:hidden fixed inset-0 z-40"
+            style={{ background: "rgba(3,5,12,0.55)" }}
+          />
+        )}
+      </AnimatePresence>
+
       {/*
         ⚠️ IMPORTANT FIX:
         Centering wrapper (fixed + left-1/2 + -translate-x-1/2) is a PLAIN div.

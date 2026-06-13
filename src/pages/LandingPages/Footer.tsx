@@ -170,7 +170,7 @@ const AppFooter = () => {
             className="flex flex-col gap-4"
           >
             <p className="hero-font text-white font-bold">Explore</p>
-            <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-col">
+            <div className="flex flex-wrap gap-x-8 gap-y-3 lg:flex-col lg:gap-3">
               {footerLinks.map((link) => (
                 <a
                   key={link.name}
