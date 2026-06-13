@@ -83,7 +83,7 @@ const Resume = () => {
         </motion.div>
 
         {/* Main Content */}
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-150px)]">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-150px)]">
           <div className="max-w-5xl mx-auto text-center">
             
             {/* Status Badge */}

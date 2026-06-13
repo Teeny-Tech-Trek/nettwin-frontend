@@ -5,7 +5,7 @@ import {
   Shield, BarChart2, Check, ArrowRight, MessageSquare,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
@@ -45,6 +45,13 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Land at the top of the form whenever this page opens. Without this the
+  // page can inherit the previous route's scroll position (e.g. coming from
+  // a scrolled-down landing page), leaving the login form scrolled out of view.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // New Google users still need the wizard; returning users go straight to dashboard.
   // Google renders its own button into `googleBtnRef`; we surround it with our themed wrapper.

@@ -259,7 +259,7 @@ const HeroSection = () => {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center overflow-hidden body-font pt-24 sm:pt-28 md:pt-[120px] pb-12 sm:pb-16 md:pb-[120px]"
+      className="relative min-h-[100dvh] flex items-center overflow-hidden body-font pt-24 sm:pt-28 md:pt-[120px] pb-12 sm:pb-16 md:pb-[120px]"
       style={{ background: "#05050f" }}
     >
       <style>{`

@@ -296,7 +296,7 @@ const Navbar = () => {
                 animate={{ opacity: 1, y: 0, height: "auto" }}
                 exit={{ opacity: 0, y: -10, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="lg:hidden mt-2 rounded-2xl sm:rounded-3xl overflow-hidden max-h-[calc(100vh-6rem)] overflow-y-auto"
+                className="lg:hidden mt-2 rounded-2xl sm:rounded-3xl overflow-hidden max-h-[calc(100dvh-6rem)] overflow-y-auto"
                 style={{
                   background:
                     "linear-gradient(135deg, rgba(8,12,28,0.95) 0%, rgba(12,18,40,0.95) 100%)",

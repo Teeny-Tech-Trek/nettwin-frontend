@@ -359,7 +359,7 @@ const DashboardSkeleton = () => (
 
 // ─── Empty state ──────────────────────────────────────────────────────────
 const EmptyState = ({ onCreateTwin, onLearnMore }: Pick<DashboardViewProps, 'onCreateTwin' | 'onLearnMore'>) => (
-  <div className="relative min-h-[calc(100vh-68px)] flex flex-col items-center justify-center px-4 py-12">
+  <div className="relative min-h-[calc(100dvh-68px)] flex flex-col items-center justify-center px-4 py-12">
 
     {/* Ambient glow behind content */}
     <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full bg-cyan-500/[0.06] blur-[120px]" />
