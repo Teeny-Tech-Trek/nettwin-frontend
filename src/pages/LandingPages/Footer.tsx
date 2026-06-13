@@ -1,14 +1,37 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Sparkles } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const footerLinks = [
-  { name: "Home", href: "#home" },
-  { name: "Features", href: "#features" },
-  // { name: "Preview", href: "#preview" },
-  { name: "CTA", href: "#cta" },
+  { name: "Home", hash: "home" },
+  { name: "Features", hash: "features" },
+  // { name: "Preview", hash: "preview" },
+  { name: "CTA", hash: "cta" },
 ];
 
 const AppFooter = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Mirror Navbar.tsx's cross-page hash handling. Plain `<a href="#home">`
+  // anchors only work when those section IDs exist on the current page — on
+  // /login, /signup, etc. they resolve to `/login#home` and do nothing.
+  // Already on `/` → smooth-scroll in place; elsewhere → navigate to `/`
+  // with the hash so HomeAllPage's scroll effect picks it up after mount.
+  const handleHashNav = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    hash: string,
+  ) => {
+    e.preventDefault();
+    if (location.pathname === "/") {
+      window.history.replaceState(null, "", `/#${hash}`);
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      navigate(`/#${hash}`);
+    }
+  };
+
   return (
     <footer
       className="relative overflow-hidden border-t border-white/10 body-font"
@@ -84,7 +107,11 @@ const AppFooter = () => {
             transition={{ duration: 0.5 }}
             className="flex flex-col gap-5"
           >
-            <a href="#home" className="flex items-center gap-3 w-fit">
+            <a
+              href="/#home"
+              onClick={(e) => handleHashNav(e, "home")}
+              className="flex items-center gap-3 w-fit"
+            >
               <span
                 className="relative w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
                 style={{
@@ -147,7 +174,8 @@ const AppFooter = () => {
               {footerLinks.map((link) => (
                 <a
                   key={link.name}
-                  href={link.href}
+                  href={`/#${link.hash}`}
+                  onClick={(e) => handleHashNav(e, link.hash)}
                   className="text-sm transition-colors hover:text-white"
                   style={{ color: "rgba(255,255,255,0.58)" }}
                 >

@@ -474,7 +474,7 @@ export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) 
                         Copy
                       </Button>
                     </div>
-                    <pre className="bg-slate-900/60 border border-cyan-500/10 rounded-lg p-3 sm:p-4 text-xs text-slate-300 whitespace-pre-wrap font-mono max-h-64 overflow-y-auto">
+                    <pre className="bg-slate-900/60 border border-cyan-500/10 rounded-lg p-3 sm:p-4 text-xs text-slate-300 whitespace-pre-wrap break-words max-w-full font-mono max-h-64 overflow-y-auto">
                       {generatePersona(data)}
                     </pre>
                   </div>
@@ -495,7 +495,7 @@ export function SuccessScreen({ data, twinId, onEditTwin }: SuccessScreenProps) 
                         Download
                       </Button>
                     </div>
-                    <pre className="bg-slate-900/60 border border-cyan-500/10 rounded-lg p-3 sm:p-4 text-xs text-slate-300 whitespace-pre-wrap font-mono max-h-64 overflow-y-auto">
+                    <pre className="bg-slate-900/60 border border-cyan-500/10 rounded-lg p-3 sm:p-4 text-xs text-slate-300 whitespace-pre-wrap break-words max-w-full font-mono max-h-64 overflow-y-auto">
                       {JSON.stringify(data, null, 2)}
                     </pre>
                   </div>

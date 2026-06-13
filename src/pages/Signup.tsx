@@ -8,7 +8,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +64,13 @@ const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signup } = useAuth();
+
+  // Land at the top of the form whenever this page opens. Without this the
+  // page can inherit the previous route's scroll position (e.g. coming from
+  // a scrolled-down landing page), leaving the signup form scrolled out of view.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // New Google users go through the wizard like email signups; returning users
   // (Google account already linked) skip straight to the dashboard.
@@ -416,7 +423,7 @@ const Signup = () => {
             </FormField>
 
             {/* Password + Confirm Password (one row) */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField
                 label="Password"
                 icon={

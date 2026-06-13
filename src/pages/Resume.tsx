@@ -83,7 +83,7 @@ const Resume = () => {
         </motion.div>
 
         {/* Main Content */}
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-150px)]">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-150px)]">
           <div className="max-w-5xl mx-auto text-center">
             
             {/* Status Badge */}
@@ -131,7 +131,7 @@ const Resume = () => {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="mb-6"
             >
-              <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold mb-4 leading-none tracking-tight">
+              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold mb-4 leading-none tracking-tight">
                 <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-500 bg-clip-text text-transparent">
                   Resume
                 </span>
