@@ -233,7 +233,7 @@ const Signup = () => {
       </div>
 
       {/* ════════════ 2-COLUMN WRAPPER: features (left) + form (right) ════════════ */}
-      <div className="relative z-10 w-full max-w-6xl grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-14 items-center justify-items-center lg:justify-items-stretch">
         {/* ─────── LEFT: 4 FEATURES (hidden on mobile, shown on lg+) ─────── */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}

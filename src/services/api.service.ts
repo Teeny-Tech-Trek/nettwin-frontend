@@ -283,8 +283,11 @@ export const chatService = {
       sessionId: data.sessionId,
       session_id: data.sessionId,
     };
+    // PRODUCTION on V2: route all twin chat through the isolated V2 path
+    // (Node /api/chat/v2 -> Python /v2/twins/{tenant}/chat -> direct Gemini).
+    // Body carries twinId/messages/sessionId, which the V2 handler reads.
     const response = await axiosInstance.post(
-      `/v1/twins/${data.twinId}/chat`,
+      `/chat/v2`,
       body,
     );
     return response.data;
