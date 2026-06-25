@@ -307,18 +307,22 @@ export const chatService = {
       messages: Array<{ role: string; content: string }>;
       userEmail: string;
       sessionId?: string;
+      signal?: AbortSignal;
     },
     onToken: (text: string) => void,
   ): Promise<{ reply: string; citations: unknown[] }> => {
     const token = localStorage.getItem('token');
-    const resp = await fetch(`${API_BASE_URL}/v1/twins/${data.twinId}/chat/stream`, {
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const resp = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        'X-Request-ID': requestId,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: 'include',
+      signal: data.signal,
       body: JSON.stringify({
         twinId: data.twinId,
         messages: data.messages,

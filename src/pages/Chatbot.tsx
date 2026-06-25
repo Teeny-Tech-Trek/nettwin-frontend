@@ -1159,6 +1159,13 @@ const Chatbot = () => {
   // True after the owner has hit their monthly chat-message quota — freezes
   // the composer and surfaces a "currently not available" banner.
   const [quotaExceeded, setQuotaExceeded] = useState(false);
+  // True while a streaming response is actively receiving tokens — used to
+  // show the blinking cursor inside the assistant bubble.
+  const [isStreaming, setIsStreaming] = useState(false);
+  // Stable ID of the assistant bubble currently being streamed into.
+  const streamingBubbleId = useRef<string | null>(null);
+  // Abort controller for the active fetch so we can cancel on new message.
+  const streamAbortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -1290,6 +1297,11 @@ const Chatbot = () => {
     // (possible) non-streaming fallback both target the same bubble.
     const assistantId = (Date.now() + 1).toString();
 
+    // Abort any in-flight stream before starting a new one.
+    streamAbortRef.current?.abort();
+    const abortCtrl = new AbortController();
+    streamAbortRef.current = abortCtrl;
+
     const isQuota = (e: any) =>
       (e?.status || e?.response?.status) === 429 ||
       e?.code === "QUOTA_EXCEEDED" ||
@@ -1340,9 +1352,11 @@ const Chatbot = () => {
     try {
       // Stream first (ChatGPT/Claude-style live typing).
       const { reply } = await chatService.streamMessage(
-        { twinId: agent._id, messages: apiMessages, userEmail: apiUserEmail, sessionId },
+        { twinId: agent._id, messages: apiMessages, userEmail: apiUserEmail, sessionId, signal: abortCtrl.signal },
         (text) => {
           ensurePlaceholder();
+          setIsStreaming(true);
+          streamingBubbleId.current = assistantId;
           setMessages((prev) =>
             prev.map((m) => (m.id === assistantId ? { ...m, content: (m.content || "") + text } : m)),
           );
@@ -1358,6 +1372,9 @@ const Chatbot = () => {
       }
     } catch (err: any) {
       console.error("Chat stream error:", err);
+      if (err?.name === "AbortError" || abortCtrl.signal.aborted) {
+        return;
+      }
       if (isQuota(err)) {
         showQuota();
         return;
@@ -1367,6 +1384,9 @@ const Chatbot = () => {
         try {
           await runFallback();
         } catch (err2: any) {
+          if (err2?.name === "AbortError" || abortCtrl.signal.aborted) {
+            return;
+          }
           if (isQuota(err2)) {
             showQuota();
             return;
@@ -1391,6 +1411,9 @@ const Chatbot = () => {
         }
       }
     } finally {
+      setIsStreaming(false);
+      streamingBubbleId.current = null;
+      streamAbortRef.current = null;
       setLoading(false);
     }
   };
@@ -1771,6 +1794,14 @@ const Chatbot = () => {
                         }`}
                       >
                         {message.content}
+                        {/* Blinking cursor while this bubble is being streamed */}
+                        {!isUser && isStreaming && streamingBubbleId.current === message.id && (
+                          <span
+                            className="inline-block w-0.5 h-[1em] bg-blue-500 ml-0.5 align-middle"
+                            style={{ animation: "nt-cursor-blink 0.9s step-end infinite" }}
+                            aria-hidden="true"
+                          />
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-400 px-1">
                         {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -1781,7 +1812,8 @@ const Chatbot = () => {
               })}
             </AnimatePresence>
 
-            {loading && (
+            {/* Thinking dots — hide while a streaming bubble is already rendering */}
+            {loading && !isStreaming && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

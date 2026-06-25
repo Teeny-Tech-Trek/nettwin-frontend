@@ -40,3 +40,9 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Streaming cursor blink (used in Chatbot.tsx assistant bubble) */
+@keyframes nt-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
