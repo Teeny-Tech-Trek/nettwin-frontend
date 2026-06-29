@@ -47,6 +47,7 @@ import Billing from "./pages/Billing";
 import ProfileSettings from "./pages/ProfileSettings";
 import PublicLayout from "./layouts/PublicLayout";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
+import OnboardingFlow from "./components/OnboardingFlow";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <OnboardingFlow />
             <Routes>
               {/* ─────────── Public (marketing) routes ─────────── */}
               <Route
