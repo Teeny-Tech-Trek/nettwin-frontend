@@ -319,14 +319,14 @@ const ONBOARDING_KEY_SESSION = "nettwin_onboarding_session_v1";
 // Main Component
 // ─────────────────────────────────────────────
 const OnboardingFlow: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isInitializing } = useAuth();
   const [visible, setVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isInitializing) return;
 
     if (user) {
       // Logged-in user: show only once ever
@@ -343,7 +343,7 @@ const OnboardingFlow: React.FC = () => {
         return () => clearTimeout(t);
       }
     }
-  }, [user, isLoading]);
+  }, [user, isInitializing]);
 
   const dismiss = useCallback(() => {
     setClosing(true);
