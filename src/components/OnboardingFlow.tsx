@@ -329,12 +329,8 @@ const OnboardingFlow: React.FC = () => {
     if (isInitializing) return;
 
     if (user) {
-      // Logged-in user: show only once ever
-      const seen = localStorage.getItem(ONBOARDING_KEY_PERSISTENT);
-      if (!seen) {
-        const t = setTimeout(() => setVisible(true), 700);
-        return () => clearTimeout(t);
-      }
+      // 👤 Logged-in user: do not show the brochure (they get the dashboard product tour instead)
+      return;
     } else {
       // Guest: show once per browser session
       const seen = sessionStorage.getItem(ONBOARDING_KEY_SESSION);

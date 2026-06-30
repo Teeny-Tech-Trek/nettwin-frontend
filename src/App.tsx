@@ -48,6 +48,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import PublicLayout from "./layouts/PublicLayout";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 import OnboardingFlow from "./components/OnboardingFlow";
+import ProductTour from "./components/ProductTour/ProductTour";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <OnboardingFlow />
+            <ProductTour />
             <Routes>
               {/* ─────────── Public (marketing) routes ─────────── */}
               <Route
