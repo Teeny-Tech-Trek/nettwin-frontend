@@ -1339,9 +1339,10 @@ const Dashboard = () => {
 
       // Profile-picture nudge: if the user has no photo at all, show the upload
       // modal after a beat. Skip if the response was malformed so we don't spam.
-      if (user && !user.avatarUrl && !user.profilePicture && !user.avatar) {
-        setTimeout(() => setIsProfileModalOpen(true), 2000);
-      }
+      // Commented out to prevent blocking the onboarding tour. We show the nudge in Profile Settings instead.
+      // if (user && !user.avatarUrl && !user.profilePicture && !user.avatar) {
+      //   setTimeout(() => setIsProfileModalOpen(true), 2000);
+      // }
     } catch (error: any) {
       console.error('Failed to fetch user profile:', error);
     }

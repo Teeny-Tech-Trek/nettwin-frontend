@@ -328,6 +328,18 @@ export default function ProfileSettings() {
             Profile Photo
           </h2>
 
+          {!profile?.avatarUrl && !profile?.profilePicture && (
+            <div className="mb-6 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-start gap-3">
+              <Camera className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <h4 className="text-sm font-semibold text-cyan-300">Complete Your Profile</h4>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  Make your digital twin stand out with a professional photo! This photo represents your professional identity to all visitors interacting with your twin.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <div className="relative">
               {avatarSrc ? (
