@@ -1231,17 +1231,27 @@ const Chatbot = () => {
     const fetchAgent = async () => {
       try {
         setError(null);
-        const result = await digitalTwinService.getPublic(id!);
+        const targetTwinId = id || "6a687dd55428ffe35ebc4e5a";
+        const result = await digitalTwinService.getPublic(targetTwinId);
         const twin = result.data;
         if (!twin || !twin.identity || !twin.identity.name) {
           throw new Error("Net twin data is missing required fields");
         }
         setAgent(twin);
+        const twinName = twin.identity.name || "this professional";
+        const shortRole = (twin.identity.role || "").split(/specializing|with expertise|\|/i)[0].replace(/[.,;\s]+$/, '').trim();
+        const rawFocus = twin.identity.tagline || twin.identity.headline || "";
+        const cleanFocus = shortRole && rawFocus ? rawFocus.replace(new RegExp(`^${shortRole.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}[\\s|·,-]*`, 'i'), '').trim() : rawFocus;
+
+        const welcomeMessage = shortRole
+          ? `Hello! I'm the net twin of ${twinName}, ${shortRole}.${cleanFocus ? ` ${cleanFocus}` : ''} What sparks your interest today?`
+          : `Hello! I'm the net twin of ${twinName}.${cleanFocus ? ` ${cleanFocus}` : ' I can share insights on my background, projects, and expertise.'} What sparks your interest today?`;
+
         setMessages([
           {
             id: "1",
             role: "assistant",
-            content: `Hello! I'm the net twin of ${twin.identity.name}, ${twin.identity.role}. ${twin.identity.tagline || 'I can share insights on my expertise, businesses, and collaboration opportunities.'} What sparks your interest today?`,
+            content: welcomeMessage,
             timestamp: new Date(),
           },
         ]);

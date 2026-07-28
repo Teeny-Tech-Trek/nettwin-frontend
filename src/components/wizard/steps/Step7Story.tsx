@@ -15,8 +15,14 @@ interface Step7StoryProps {
 export const Step7Story = ({ data, onChange }: Step7StoryProps) => {
   const [themeInput, setThemeInput] = useState("");
   
-  // Ensure data and arrays are safe
-  const safeData = data ?? { mission: "", impact: "", themes: [] };
+  // Ensure data and arrays are safe, handling string, object, or null shapes
+  const safeData = (data && typeof data === "object" && !Array.isArray(data))
+    ? data
+    : {
+        mission: typeof data === "string" ? data : "",
+        impact: "",
+        themes: [],
+      };
   const themes = safeArray(safeData?.themes);
 
   const handleChange = (field: keyof Story, value: string | string[]) => {

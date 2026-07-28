@@ -127,18 +127,22 @@ const App = () => (
                 }
               />
               <Route
+                path="/chatbot"
+                element={<Navigate to="/chatbot/6a687dd55428ffe35ebc4e5a" replace />}
+              />
+              <Route
+                path="/demo"
+                element={<Navigate to="/chatbot/6a687dd55428ffe35ebc4e5a" replace />}
+              />
+              <Route
+                path="/portfolio"
+                element={<Navigate to="/chatbot/6a687dd55428ffe35ebc4e5a" replace />}
+              />
+              <Route
                 path="/resume"
                 element={
                   <AuthenticatedLayout>
                     <Resume />
-                  </AuthenticatedLayout>
-                }
-              />
-              <Route
-                path="/portfolio"
-                element={
-                  <AuthenticatedLayout>
-                    <Portfolio />
                   </AuthenticatedLayout>
                 }
               />
