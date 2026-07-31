@@ -170,6 +170,7 @@ const DashboardHeader = (props: DashboardViewProps) => {
           {/* Desktop user pill */}
           <div className="relative hidden sm:block">
             <button
+              id="tour-user-menu"
               onClick={onToggleUserMenu}
               className="flex items-center gap-3 px-3 py-2 rounded-2xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-cyan-500/30 transition-all duration-200"
             >
@@ -392,6 +393,7 @@ const EmptyState = ({ onCreateTwin, onLearnMore }: Pick<DashboardViewProps, 'onC
 
     {/* Card */}
     <motion.div
+      id="tour-twin-card"
       initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
       className="relative w-full max-w-md">
 
@@ -471,6 +473,7 @@ const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, on
 
   return (
     <motion.div
+      id="tour-twin-card"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
       className="rounded-2xl overflow-hidden bg-[#0c1f33]/90 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
     >
@@ -567,7 +570,7 @@ const TwinCard = ({ twin, avatarSrc, twinPublicUrl, onEditTwin, onDeleteTwin, on
 const WelcomeHero = ({ userProfile }: { userProfile: UserProfile | null }) => {
   const firstName = userProfile?.name?.trim().split(/\s+/)[0];
   return (
-    <div className="flex flex-col justify-center">
+    <div id="tour-welcome-hero" className="flex flex-col justify-center">
       <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
         className="text-slate-400 text-sm mb-3 font-medium">
         Welcome back{firstName ? `, ${firstName}` : ''} ðŸ‘‹
@@ -597,7 +600,7 @@ const StatsCards = ({ statusCounts, activeFilter, onSelectFilter }:
     { key: 'converted', label: 'Converted Leads', short: 'CONVERTED', val: statusCounts.converted, Icon: TrendingUp,iconBg: 'bg-teal-500/10',   iconText: 'text-teal-300',    border: 'border-teal-500/20',    ring: 'ring-teal-500/40' },
   ];
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div id="tour-stats-cards" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {stats.map((s, i) => {
         const active = activeFilter === s.key;
         return (
@@ -645,7 +648,7 @@ const getLeadEmail = (lead: Lead): string => lead.userEmail || lead.email || 'â€
 const LeadsSection = ({ filteredLeads, isLoadingLeads, activeFilter, onSelectFilter, onLeadStatusChange, onViewLead }:
   Pick<DashboardViewProps, 'filteredLeads' | 'isLoadingLeads' | 'activeFilter' | 'onSelectFilter' | 'onLeadStatusChange'> & { onViewLead: (lead: Lead) => void }
 ) => (
-  <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+  <motion.div id="tour-leads-section" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
     className="rounded-2xl overflow-hidden bg-[#0c1f33]/80 backdrop-blur-xl border border-white/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
 
     {/* Header */}

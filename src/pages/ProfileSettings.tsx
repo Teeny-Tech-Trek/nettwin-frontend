@@ -17,7 +17,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Loader2, Trash2, User as UserIcon, Lock, Save } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Trash2, User as UserIcon, Lock, Save, Sparkles, RefreshCw } from 'lucide-react';
 import { authService } from '@/services/api.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -328,6 +328,18 @@ export default function ProfileSettings() {
             Profile Photo
           </h2>
 
+          {!profile?.avatarUrl && !profile?.profilePicture && (
+            <div className="mb-6 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-start gap-3">
+              <Camera className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <h4 className="text-sm font-semibold text-cyan-300">Complete Your Profile</h4>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  Make your digital twin stand out with a professional photo! This photo represents your professional identity to all visitors interacting with your twin.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <div className="relative">
               {avatarSrc ? (
@@ -523,6 +535,31 @@ export default function ProfileSettings() {
                 )}
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* Product Tour Section */}
+        <section className="bg-white/5 backdrop-blur-sm border border-cyan-500/20 rounded-2xl p-6 sm:p-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-white mb-2 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-cyan-400" />
+            Product Tour
+          </h2>
+          <p className="text-sm text-slate-400 mb-6">
+            Replay the interactive walkthrough of your dashboard to learn about its main features and layout.
+          </p>
+          <div className="flex justify-start">
+            <button
+              onClick={() => {
+                const userId = profile?._id;
+                const key = userId ? `nettwin_dashboard_tour_v1_${userId}` : 'nettwin_dashboard_tour_v1';
+                localStorage.removeItem(key);
+                navigate('/dashboard');
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition font-medium text-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Restart Dashboard Tour
+            </button>
           </div>
         </section>
       </div>
