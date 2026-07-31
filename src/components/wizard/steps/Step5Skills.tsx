@@ -20,9 +20,15 @@ interface Step5SkillsProps {
 export const Step5Skills = ({ data, onChange }: Step5SkillsProps) => {
   const [skillInput, setSkillInput] = useState("");
   
-  // Ensure data and arrays are safe
-  const safeData = data ?? { list: [], coreDomains: "", signatureStrengths: "" };
-  const skillsList = safeArray(safeData?.list);
+  // Ensure data and arrays are safe, handling both array and object data shapes
+  const safeData = (data && typeof data === "object" && !Array.isArray(data))
+    ? data
+    : {
+        list: Array.isArray(data) ? data : [],
+        coreDomains: Array.isArray(data) ? data.slice(0, 6).join(", ") : "",
+        signatureStrengths: "",
+      };
+  const skillsList = safeArray(safeData?.list || (Array.isArray(data) ? data : []));
 
   const addSkill = () => {
     if (skillInput.trim() && !skillsList.includes(skillInput.trim())) {

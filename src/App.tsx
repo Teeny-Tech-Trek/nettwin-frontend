@@ -27,7 +27,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -127,18 +127,22 @@ const App = () => (
                 }
               />
               <Route
+                path="/chatbot"
+                element={<Navigate to="/chatbot/6a687dd55428ffe35ebc4e5a" replace />}
+              />
+              <Route
+                path="/demo"
+                element={<Navigate to="/chatbot/6a687dd55428ffe35ebc4e5a" replace />}
+              />
+              <Route
+                path="/portfolio"
+                element={<Navigate to="/chatbot/6a687dd55428ffe35ebc4e5a" replace />}
+              />
+              <Route
                 path="/resume"
                 element={
                   <AuthenticatedLayout>
                     <Resume />
-                  </AuthenticatedLayout>
-                }
-              />
-              <Route
-                path="/portfolio"
-                element={
-                  <AuthenticatedLayout>
-                    <Portfolio />
                   </AuthenticatedLayout>
                 }
               />

@@ -436,6 +436,18 @@ function mergeProfiles(
   const merged: Partial<DigitalTwinProfile> = { ...twin };
 
   for (const [key, value] of Object.entries(extracted)) {
+    // Special case: if skills comes as a flat array of strings, wrap it into the skills object expected by Step 5
+    if (key === "skills" && Array.isArray(value)) {
+      const existingSkills = typeof (merged as any).skills === "object" && !Array.isArray((merged as any).skills) ? (merged as any).skills : {};
+      const validatedList = value.filter((item) => item !== null && item !== undefined && typeof item === "string");
+      (merged as any).skills = {
+        list: validatedList.length > 0 ? validatedList : (existingSkills.list || []),
+        coreDomains: existingSkills.coreDomains || validatedList.slice(0, 6).join(", "),
+        signatureStrengths: existingSkills.signatureStrengths || (merged.identity?.headline || merged.identity?.summary || ""),
+      };
+      continue;
+    }
+
     // Handle arrays with safe validation
     if (Array.isArray(value)) {
       // Ensure extracted array has valid elements and preserve type safety

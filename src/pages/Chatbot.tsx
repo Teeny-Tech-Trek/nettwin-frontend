@@ -1169,6 +1169,52 @@ const Chatbot = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  // ── Typewriter queue ────────────────────────────────────────────────────
+  // Root cause: Vertex AI CDN buffers ALL streaming chunks and releases them
+  // simultaneously. So 7 large tokens (each ~300 chars) all arrive at once.
+  // If we render one token per RAF frame (16ms), 7 tokens finish in 112ms —
+  // completely invisible to the user.
+  //
+  // Fix: (1) split each token into individual words (300 chars → ~50 words),
+  // (2) render ONE WORD every 20ms via setTimeout.
+  // Result: 360 words × 20ms = 7.2s of smooth visible typing at 50 words/sec.
+  // Same effect as ChatGPT — network timing doesn't matter at all.
+  const typewriterQueue = useRef<string[]>([]);
+  const typewriterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typewriterTargetId = useRef<string | null>(null);
+  const TYPEWRITER_MS = 20; // 50 words/second — fast but clearly visible
+
+  const startTypewriter = (targetId: string) => {
+    // If a loop is already running, it will drain the queue automatically —
+    // just let it continue (new words were pushed to the shared queue).
+    if (typewriterTimer.current !== null) return;
+
+    const tick = () => {
+      if (typewriterQueue.current.length === 0) {
+        typewriterTimer.current = null;
+        return;
+      }
+      const word = typewriterQueue.current.shift()!;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === targetId ? { ...m, content: (m.content || '') + word } : m,
+        ),
+      );
+      typewriterTimer.current = setTimeout(tick, TYPEWRITER_MS);
+    };
+
+    typewriterTimer.current = setTimeout(tick, TYPEWRITER_MS);
+  };
+
+  const stopTypewriter = () => {
+    if (typewriterTimer.current !== null) {
+      clearTimeout(typewriterTimer.current);
+      typewriterTimer.current = null;
+    }
+    typewriterQueue.current = [];
+    typewriterTargetId.current = null;
+  };
+
   // Check mobile viewport
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -1176,6 +1222,11 @@ const Chatbot = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Cancel any in-flight typewriter animation on unmount to prevent leaks
+  useEffect(() => {
+    return () => stopTypewriter();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // LAYOUT-ONLY: keep the app sized to the EXACT visible area.
   // CSS units (vh/svh/dvh) can't react to the iOS on-screen keyboard, so we
@@ -1221,27 +1272,42 @@ const Chatbot = () => {
   }, [agent]);
 
   useEffect(() => {
-  if (messagesEndRef.current) {
-    messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-  }
-}, [messages]);
+    if (messagesEndRef.current) {
+      // Use 'instant' during active streaming so scroll doesn't animate
+      // between every flushSync token render (would cause visible lag/jank).
+      messagesEndRef.current.scrollIntoView({
+        behavior: streamingBubbleId.current ? 'instant' : 'smooth',
+        block: 'end',
+      });
+    }
+  }, [messages]);
 
   // Fetch Public Digital Twin
   useEffect(() => {
     const fetchAgent = async () => {
       try {
         setError(null);
-        const result = await digitalTwinService.getPublic(id!);
+        const targetTwinId = id || "6a687dd55428ffe35ebc4e5a";
+        const result = await digitalTwinService.getPublic(targetTwinId);
         const twin = result.data;
         if (!twin || !twin.identity || !twin.identity.name) {
           throw new Error("Net twin data is missing required fields");
         }
         setAgent(twin);
+        const twinName = twin.identity.name || "this professional";
+        const shortRole = (twin.identity.role || "").split(/specializing|with expertise|\|/i)[0].replace(/[.,;\s]+$/, '').trim();
+        const rawFocus = twin.identity.tagline || twin.identity.headline || "";
+        const cleanFocus = shortRole && rawFocus ? rawFocus.replace(new RegExp(`^${shortRole.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}[\\s|·,-]*`, 'i'), '').trim() : rawFocus;
+
+        const welcomeMessage = shortRole
+          ? `Hello! I'm the net twin of ${twinName}, ${shortRole}.${cleanFocus ? ` ${cleanFocus}` : ''} What sparks your interest today?`
+          : `Hello! I'm the net twin of ${twinName}.${cleanFocus ? ` ${cleanFocus}` : ' I can share insights on my background, projects, and expertise.'} What sparks your interest today?`;
+
         setMessages([
           {
             id: "1",
             role: "assistant",
-            content: `Hello! I'm the net twin of ${twin.identity.name}, ${twin.identity.role}. ${twin.identity.tagline || 'I can share insights on my expertise, businesses, and collaboration opportunities.'} What sparks your interest today?`,
+            content: welcomeMessage,
             timestamp: new Date(),
           },
         ]);
@@ -1253,13 +1319,7 @@ const Chatbot = () => {
     fetchAgent();
   }, [id]);
 
-  // Auto scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+
 
   // Detect interest keywords to trigger lead modal
   const checkForInterest = (content: string) => {
@@ -1349,25 +1409,52 @@ const Chatbot = () => {
       );
     };
 
+    // Reset typewriter queue for this new message
+    stopTypewriter();
+    typewriterTargetId.current = assistantId;
+
     try {
       // Stream first (ChatGPT/Claude-style live typing).
+      // onToken pushes each chunk into the typewriter queue which drains it
+      // one token per animation frame — smooth 60fps word-by-word typing even
+      // when all tokens arrive from the network simultaneously.
       const { reply } = await chatService.streamMessage(
         { twinId: agent._id, messages: apiMessages, userEmail: apiUserEmail, sessionId, signal: abortCtrl.signal },
         (text) => {
           ensurePlaceholder();
           setIsStreaming(true);
           streamingBubbleId.current = assistantId;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: (m.content || "") + text } : m)),
-          );
+          // Split token into individual words and push each to the typewriter
+          // queue. This is the critical step: instead of queuing 7 large tokens
+          // (rendered in 112ms, invisible), we queue ~360 words rendered at
+          // 20ms each = ~7 seconds of smooth visible streaming animation.
+          const words = text.match(/\S+\s*/g) || [text]; // ['Hello ', 'world ', '!']
+          for (const word of words) {
+            typewriterQueue.current.push(word);
+          }
+          startTypewriter(assistantId);
         },
       );
 
       if (reply && reply.trim()) {
+        // Wait for the typewriter queue to finish draining before setting
+        // the final reply — prevents a flicker where the final setMessages
+        // overwrites mid-animation content.
+        await new Promise<void>((resolve) => {
+          const waitForQueue = () => {
+            if (typewriterQueue.current.length === 0 && typewriterTimer.current === null) {
+              resolve();
+            } else {
+              setTimeout(waitForQueue, 16);
+            }
+          };
+          waitForQueue();
+        });
         ensurePlaceholder();
         setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m)));
       } else {
         // Nothing usable streamed → fall back to the non-streaming endpoint.
+        stopTypewriter();
         await runFallback();
       }
     } catch (err: any) {
@@ -1411,10 +1498,24 @@ const Chatbot = () => {
         }
       }
     } finally {
-      setIsStreaming(false);
-      streamingBubbleId.current = null;
-      streamAbortRef.current = null;
-      setLoading(false);
+      // Let the typewriter finish naturally; just mark streaming done
+      // after any remaining tokens have been rendered.
+      const waitAndCleanup = async () => {
+        if (typewriterQueue.current.length > 0 || typewriterTimer.current !== null) {
+          await new Promise<void>((resolve) => {
+            const wait = () => {
+              if (typewriterQueue.current.length === 0 && typewriterTimer.current === null) resolve();
+              else setTimeout(wait, 16);
+            };
+            wait();
+          });
+        }
+        setIsStreaming(false);
+        streamingBubbleId.current = null;
+        streamAbortRef.current = null;
+        setLoading(false);
+      };
+      waitAndCleanup();
     }
   };
 
